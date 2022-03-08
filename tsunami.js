@@ -493,16 +493,20 @@ async function tvl() {
   avalancheAaveBalance = usdc(avalancheAaveBalance);
   ethereumAaveBalance = usdc(ethereumAaveBalance);
   let total = polygonAaveBalance + avalancheAaveBalance + ethereumAaveBalance;
-  let tvl =
-    "V4 TVL ||    TOTAL: " +
-    commas(total) +
-    "    POLY: " +
+  let tvl = new MessageEmbed()
+  .setColor("#0099ff")
+  .setTitle(
+      " V4 TVL Total " + emoji("usdc") + " " +
+      commas(total) 
+  )
+  .setDescription(
+    emoji("polygon") + " Polygon " +
     commas(polygonAaveBalance) +
-    "    " +
-    " ETH: " +
-    commas(ethereumAaveBalance) +
-    "    AVAX: " +
-    commas(avalancheAaveBalance);
+    "\n" +
+    emoji("ethereum") + " Ethereum " +
+    commas(ethereumAaveBalance) + "\n" +
+    emoji("avalanche") + " Avalanche " +
+    commas(avalancheAaveBalance));
   return tvl;
 }
 async function flushable() {
@@ -555,7 +559,7 @@ async function odds(amount) {
     let tvl = await tvlTotal();
     console.log("odds tvl", tvl);
     const prizeTier = [3, 48, 192, 768];
-    const tierPrizes = [1000, 50, 10, 5];
+    let tierPrizes = [1000, 50, 10, 5];
     let oddsResult = [];
     let totalPrizes = 0;
     prizeTier.forEach((tier) => {
@@ -565,10 +569,12 @@ async function odds(amount) {
     });
     let anyPrizeOdds = 1 / (1 - Math.pow((tvl - amount) / tvl, totalPrizes));
     let oddsString =
-      "DAILY ODDS ||   ANY PRIZE: 1 in " + oddsNumber(anyPrizeOdds);
-    for (x in oddsResult) {
-      oddsString += "   $" + tierPrizes[x];
-      oddsString += ": 1 in " + oddsNumber(oddsResult[x]);
+      emoji("trophy") + " \  \ Any prize `1 in " + oddsNumber(anyPrizeOdds) + "`\n\n";
+      tierPrizes = tierPrizes.reverse()
+    for (x in oddsResult.reverse()) {
+      
+      oddsString += " \  `1 in " + oddsNumber(oddsResult[x]) + "` to win ";
+      oddsString += "\ " + emoji("usdc") + " " + tierPrizes[x] + "\n";
     }
     return oddsString;
   } catch (error) {
@@ -1506,6 +1512,12 @@ async function go() {
           name: "`=odds <amount>`",
           value: "check the current odds of a deposit amount",
         },
+
+        {
+          name: "`=player <address>`",
+          value: "player history overview",
+        },
+
         {
           name: "`=wins <address>`",
           value: "find all the wins for a specific address",
@@ -1608,8 +1620,13 @@ async function go() {
           let oddsQuery = message.content.split(" ");
           amount = oddsQuery[1];
           odds(amount).then((oddsText) => {
-            message.author.send(oddsText);
+            const oddsEmbed = new MessageEmbed()
+              .setColor("#0099ff")
+              .setTitle("Daily Odds with " + emoji("usdc") + " " + amount)
+              .setDescription(oddsText);
+            message.reply({ embeds: [oddsEmbed] });
           });
+          
         }
         if (message.content.startsWith("=oddsA")) {
           let oddsQuery = message.content.split(" ");
@@ -1715,7 +1732,7 @@ async function go() {
           });
         }
         if (message.content === "=tvl") {
-          tvl().then((tvlText) => message.channel.send(tvlText));
+          tvl().then((tvlText) => message.channel.send({embeds: [tvlText]}));
         }
         if (message.content.startsWith("=ukraine")) {
           ukraine().then((playerText) => {
@@ -1847,7 +1864,12 @@ async function go() {
           let oddsQuery = message.content.split(" ");
           amount = oddsQuery[1];
           odds(amount).then((oddsText) => {
-            message.reply(oddsText);
+
+            const oddsEmbed = new MessageEmbed()
+              .setColor("#0099ff")
+              .setTitle("Daily Odds with " + emoji("usdc") + " " + amount)
+              .setDescription(oddsText);
+            message.reply({ embeds: [oddsEmbed] });
           });
         }
         // inside a command, event listener, etc.
@@ -1869,6 +1891,15 @@ async function go() {
               name: "`=odds <deposit amount>`",
               value: "see the odds for any deposit amount",
             },
+            {
+              name: "`=simulate <deposit>`",
+              value: "project prize apr for 365 days deposited",
+            },
+
+            {
+              name: "`=player <address>`",
+              value: "player history overview",
+            },
 
             {
               name: "`=wins <address>`",
@@ -1878,10 +1909,7 @@ async function go() {
               name: "`=prizes <address> <draw>`",
               value: "check prizes for an address from a specific draw",
             },
-            {
-              name: "`=simulate <deposit>`",
-              value: "project prize apr for 365 days deposited",
-            },
+            
             {
               name: "`=lucky <draw>`",
               value: "find the luckiest player for a certain draw",
