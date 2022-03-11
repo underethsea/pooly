@@ -47,6 +47,7 @@ let ticketAbi = [
   "function totalSupply() public view returns (uint256)",
   "function getAverageBalanceBetween(address,uint64,uint64)  public view returns (uint256)",
   "function getBalanceAt(address user, uint64 timestamp) public view returns (uint256)",
+  "function getTotalSupplyAt(uint64) public view returns (uint256)",
 ];
 let aaveAbi = ["function balanceOf(address) public view returns (uint256)"];
 const polygonTicketContract = new ethers.Contract(
@@ -86,15 +87,11 @@ const avalancheDepositFilter = {
 };
 const polygonClaimFilter = {
   address: ADDRESS.POLYGON.DISTRIBUTOR,
-  topics: [
-    ethers.utils.id("ClaimedDraw(address,uint32,uint256)"),
-  ],
+  topics: [ethers.utils.id("ClaimedDraw(address,uint32,uint256)")],
 };
 const avalancheClaimFilter = {
   address: ADDRESS.AVALANCHE.DISTRIBUTOR,
-  topics: [
-    ethers.utils.id("ClaimedDraw(address,uint32,uint256)"),
-  ],
+  topics: [ethers.utils.id("ClaimedDraw(address,uint32,uint256)")],
 };
 
 const polygonAaveContract = new ethers.Contract(
@@ -482,6 +479,26 @@ async function tvlTotal() {
   let total = polygonAaveBalance + avalancheAaveBalance + ethereumAaveBalance;
   return total;
 }
+async function tvlActive() {
+  let timeNow = parseInt(Date.now() / 1000);
+  let [polygonGetTotalSupply, avalancheGetTotalSupply, ethereumGetTotalSupply] =
+    await Promise.all([
+      polygonTicketContract.getTotalSupplyAt(timeNow),
+      avalancheTicketContract.getTotalSupplyAt(timeNow),
+      ethereumTicketContract.getTotalSupplyAt(timeNow),
+    ]);
+  let tvlActiveTotal =
+    usdc(polygonGetTotalSupply) +
+    usdc(avalancheGetTotalSupply) +
+    usdc(ethereumGetTotalSupply);
+  let tvlActiveReturn = {
+    total: tvlActiveTotal,
+    polygon: usdc(polygonGetTotalSupply),
+    avalanche: usdc(avalancheGetTotalSupply),
+    ethereum: usdc(ethereumGetTotalSupply),
+  };
+  return tvlActiveReturn;
+}
 async function tvl() {
   let [polygonAaveBalance, avalancheAaveBalance, ethereumAaveBalance] =
     await Promise.all([
@@ -489,24 +506,27 @@ async function tvl() {
       avalancheAaveContract.balanceOf(ADDRESS.AVALANCHE.YIELDSOURCE),
       ethereumAaveContract.balanceOf(ADDRESS.ETHEREUM.YIELDSOURCE),
     ]);
+
   polygonAaveBalance = usdc(polygonAaveBalance);
   avalancheAaveBalance = usdc(avalancheAaveBalance);
   ethereumAaveBalance = usdc(ethereumAaveBalance);
   let total = polygonAaveBalance + avalancheAaveBalance + ethereumAaveBalance;
   let tvl = new MessageEmbed()
-  .setColor("#0099ff")
-  .setTitle(
-      " V4 TVL Total " + emoji("usdc") + " " +
-      commas(total) 
-  )
-  .setDescription(
-    emoji("polygon") + " Polygon " +
-    commas(polygonAaveBalance) +
-    "\n" +
-    emoji("ethereum") + " Ethereum " +
-    commas(ethereumAaveBalance) + "\n" +
-    emoji("avalanche") + " Avalanche " +
-    commas(avalancheAaveBalance));
+    .setColor("#0099ff")
+    .setTitle(" V4 TVL Total " + emoji("usdc") + " " + commas(total))
+    .setDescription(
+      emoji("polygon") +
+        " Polygon " +
+        commas(polygonAaveBalance) +
+        "\n" +
+        emoji("ethereum") +
+        " Ethereum " +
+        commas(ethereumAaveBalance) +
+        "\n" +
+        emoji("avalanche") +
+        " Avalanche " +
+        commas(avalancheAaveBalance)
+    );
   return tvl;
 }
 async function flushable() {
@@ -556,7 +576,8 @@ const oddsNumber = (amount) => {
 };
 async function odds(amount) {
   try {
-    let tvl = await tvlTotal();
+    let tvl = await tvlActive();
+    tvl = tvl.total;
     console.log("odds tvl", tvl);
     const prizeTier = [3, 48, 192, 768];
     let tierPrizes = [1000, 50, 10, 5];
@@ -569,12 +590,14 @@ async function odds(amount) {
     });
     let anyPrizeOdds = 1 / (1 - Math.pow((tvl - amount) / tvl, totalPrizes));
     let oddsString =
-      emoji("trophy") + " \  \ Any prize `1 in " + oddsNumber(anyPrizeOdds) + "`\n\n";
-      tierPrizes = tierPrizes.reverse()
+      emoji("trophy") +
+      "    Any prize `1 in " +
+      oddsNumber(anyPrizeOdds) +
+      "`\n\n";
+    tierPrizes = tierPrizes.reverse();
     for (x in oddsResult.reverse()) {
-      
-      oddsString += " \  `1 in " + oddsNumber(oddsResult[x]) + "` to win ";
-      oddsString += "\ " + emoji("usdc") + " " + tierPrizes[x] + "\n";
+      oddsString += "   `1 in " + oddsNumber(oddsResult[x]) + "` to win ";
+      oddsString += " " + emoji("usdc") + " " + tierPrizes[x] + "\n";
     }
     return oddsString;
   } catch (error) {
@@ -950,9 +973,8 @@ async function wins(address) {
     for (
       let entry = 0;
       entry < drawResult.length;
-      entry += 1
-    ) // console.log("0", drawResult[0]);
-    // console.log("entry number", entry);
+      entry += 1 // console.log("0", drawResult[0]);
+    ) // console.log("entry number", entry);
     // console.log("entry array", drawResult[entry]);
     // console.log(drawResult[entry].claimable_prizes[0]);
     {
@@ -1626,7 +1648,6 @@ async function go() {
               .setDescription(oddsText);
             message.reply({ embeds: [oddsEmbed] });
           });
-          
         }
         if (message.content.startsWith("=oddsA")) {
           let oddsQuery = message.content.split(" ");
@@ -1676,17 +1697,22 @@ async function go() {
             message.reply("What amount is that friend?");
           } else {
             simulateApy(amount, 30000000, 0.05).then((apyText) => {
-              message.channel.send(
-                "100 SIMULATIONS ||    DEPOSIT: " +
-                  amount +
-                  "     APR: " +
-                  apyText.unlucky +
-                  "% - " +
-                  apyText.lucky +
-                  "%    AVG: " +
-                  apyText.average +
-                  "%"
-              );
+              let simulateText =
+                "<:TokenUSDC:823404729634652220> DEPOSIT `" +
+                commas(parseFloat(amount)) +
+                "`\n:calendar_spiral: APR Range `" +
+                apyText.unlucky +
+                "% - " +
+                apyText.lucky +
+                "%`  \n:scales: Average `" +
+                apyText.average +
+                "%`\n\n*Results out of 100 Simulations*";
+              const simulateEmbed = new MessageEmbed()
+                .setColor("#0099ff")
+                .setTitle("Prize Simulator")
+                .setDescription(simulateText);
+
+              message.reply({ embeds: [simulateEmbed] });
             });
           }
         }
@@ -1732,8 +1758,35 @@ async function go() {
           });
         }
         if (message.content === "=tvl") {
-          tvl().then((tvlText) => message.channel.send({embeds: [tvlText]}));
+          tvl().then((tvlText) => message.channel.send({ embeds: [tvlText] }));
         }
+        if (message.content === "=tvl active") {
+          tvlActive().then((tvlActiveAmt) => {
+            let tvlEmbed = new MessageEmbed()
+              .setColor("#0099ff")
+              .setTitle(
+                " V4 TVL Active Total " +
+                  emoji("usdc") +
+                  " " +
+                  commas(tvlActiveAmt.total)
+              )
+              .setDescription(
+                emoji("polygon") +
+                  " Polygon " +
+                  commas(tvlActiveAmt.polygon) +
+                  "\n" +
+                  emoji("ethereum") +
+                  " Ethereum " +
+                  commas(tvlActiveAmt.ethereum) +
+                  "\n" +
+                  emoji("avalanche") +
+                  " Avalanche " +
+                  commas(tvlActiveAmt.avalanche)
+              );
+            message.channel.send({ embeds: [tvlEmbed] });
+          });
+        }
+
         if (message.content.startsWith("=ukraine")) {
           ukraine().then((playerText) => {
             message.reply(playerText);
@@ -1864,7 +1917,6 @@ async function go() {
           let oddsQuery = message.content.split(" ");
           amount = oddsQuery[1];
           odds(amount).then((oddsText) => {
-
             const oddsEmbed = new MessageEmbed()
               .setColor("#0099ff")
               .setTitle("Daily Odds with " + emoji("usdc") + " " + amount)
@@ -1909,7 +1961,7 @@ async function go() {
               name: "`=prizes <address> <draw>`",
               value: "check prizes for an address from a specific draw",
             },
-            
+
             {
               name: "`=lucky <draw>`",
               value: "find the luckiest player for a certain draw",

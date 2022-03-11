@@ -13,7 +13,6 @@ const { MessageEmbed } = require("discord.js");
 const dotenv = require("dotenv");
 var emoji = require("./functions/emoji.js");
 
-
 dotenv.config();
 
 const client = new Discord.Client({
@@ -42,6 +41,9 @@ async function getCurrentDraw() {
   let draws = currentDrawNumber[0].max;
   console.log("current draw ", draws);
 
+  // hardcode draw# - prob need to change lastAlertedDraw.txt
+  //  draws = "147"
+
   return draws;
 }
 
@@ -56,6 +58,8 @@ const db = pgp(cn);
 
 
 async function prizes(discord, address, draw) {
+  const tempBlacklist =[]
+  if (tempBlacklist.includes(address)) { console.log("skipped",address)}else{
   try {
     console.log("address", address,"draw", draw);
     drawId = parseInt(draw);
@@ -222,7 +226,7 @@ async function prizes(discord, address, draw) {
     console.log(error);
   }
 }
-
+}
 async function isNewDraw(draw) {
   try {
     const data = fs.readFileSync("./lastAlertedDraw.txt", "utf8");
