@@ -6,6 +6,7 @@ const ethers = require("ethers");
 const fetch = require("cross-fetch");
 const Discord = require("discord.js");
 const { ADDRESS } = require("./address.js");
+const {ABI} = require("./abi.js")
 const { MessageEmbed } = require("discord.js");
 dotenv.config();
 const client = new Discord.Client({
@@ -20,17 +21,19 @@ const ethereumEndpoint =
   "https://mainnet.infura.io/v3/" + process.env.ETHEREUM_KEY;
 const polygonEndpoint =
   "https://polygon-mainnet.g.alchemy.com/v2/" + process.env.POLYGON_KEY;
-const avalancheEndpoint = "https://api.avax.network/ext/bc/C/rpc";
-
+// const avalancheEndpoint = "https://api.avax.network/ext/bc/C/rpc";
+const avalancheEndpoint = "https://rpc.ankr.com/avalanche";
 const polygonProvider = new ethers.providers.JsonRpcProvider(polygonEndpoint);
 const avalancheProvider = new ethers.providers.JsonRpcProvider(
   avalancheEndpoint
 );
 const ethereumProvider = new ethers.providers.JsonRpcProvider(ethereumEndpoint);
 
-const polygonAaveIncentives = "0x357D51124f59836DeD84c8a1730D72B749d8BC23";
-const ethereumAaveIncentives = "0xd784927Ff2f95ba542BfC824c8a8a98F3495f6b5";
-const avalancheAaveIncentives = "0x01D83Fe6A10D2f2B7AF17034343746188272cAc9";
+// const polygonAaveIncentives = "0x357D51124f59836DeD84c8a1730D72B749d8BC23";
+// const ethereumAaveIncentives = "0xd784927Ff2f95ba542BfC824c8a8a98F3495f6b5";
+// const avalancheAaveIncentives = "0x01D83Fe6A10D2f2B7AF17034343746188272cAc9";
+
+const ethereumPrizeTier = "0xdD1cba915Be9c7a1e60c4B99DADE1FC49F67f80D";
 
 const execChannelId = "895375558966390834";
 const botChannelId = "878246045048520704";
@@ -39,32 +42,61 @@ const winnersChannelId = "904034122903748659";
 const claimsChannelId = "917547918225981503";
 const turnstileChannelId = "943062268139175957";
 
-let aaveIncentivesAbi = [
-  "function getUserUnclaimedRewards(address) external view returns (uint256)",
-];
-let ticketAbi = [
-  "function balanceOf(address) public view returns (uint256)",
-  "function totalSupply() public view returns (uint256)",
-  "function getAverageBalanceBetween(address,uint64,uint64)  public view returns (uint256)",
-  "function getBalanceAt(address user, uint64 timestamp) public view returns (uint256)",
-  "function getTotalSupplyAt(uint64) public view returns (uint256)",
-];
-let aaveAbi = ["function balanceOf(address) public view returns (uint256)"];
 const polygonTicketContract = new ethers.Contract(
   ADDRESS.POLYGON.TICKET,
-  ticketAbi,
+  ABI.TICKET,
   polygonProvider
+);
+
+const prizeTierContract = new ethers.Contract(
+  ADDRESS.ETHEREUM.PRIZETIER,
+  ABI.PRIZETIER,
+  ethereumProvider
 );
 const avalancheTicketContract = new ethers.Contract(
   ADDRESS.AVALANCHE.TICKET,
-  ticketAbi,
+  ABI.TICKET,
   avalancheProvider
 );
 const ethereumTicketContract = new ethers.Contract(
   ADDRESS.ETHEREUM.TICKET,
-  ticketAbi,
+  ABI.TICKET,
   ethereumProvider
 );
+
+
+const polygonAaveContract = new ethers.Contract(
+  ADDRESS.POLYGON.AAVETOKEN,
+  ABI.AAVE,
+  polygonProvider
+);
+const avalancheAaveContract = new ethers.Contract(
+  ADDRESS.AVALANCHE.AAVETOKEN,
+  ABI.AAVE,
+  avalancheProvider
+);
+const ethereumAaveContract = new ethers.Contract(
+  ADDRESS.ETHEREUM.AAVETOKEN,
+  ABI.AAVE,
+  ethereumProvider
+);
+
+const polygonAaveIncentivesContract = new ethers.Contract(
+  ADDRESS.POLYGON.AAVEINCENTIVES,
+  ABI.AAVEINCENTIVES,
+  polygonProvider
+);
+const avalancheAaveIncentivesContract = new ethers.Contract(
+  ADDRESS.AVALANCHE.AAVEINCENTIVES,
+  ABI.AAVEINCENTIVES,
+  avalancheProvider
+);
+const ethereumAaveIncentivesContract = new ethers.Contract(
+  ADDRESS.ETHEREUM.AAVEINCENTIVES,
+  ABI.AAVEINCENTIVES,
+  ethereumProvider
+);
+
 const polygonWithdrawFilter = {
   address: ADDRESS.POLYGON.POOL,
   topics: [
@@ -93,38 +125,6 @@ const avalancheClaimFilter = {
   address: ADDRESS.AVALANCHE.DISTRIBUTOR,
   topics: [ethers.utils.id("ClaimedDraw(address,uint32,uint256)")],
 };
-
-const polygonAaveContract = new ethers.Contract(
-  ADDRESS.POLYGON.AAVETOKEN,
-  aaveAbi,
-  polygonProvider
-);
-const avalancheAaveContract = new ethers.Contract(
-  ADDRESS.AVALANCHE.AAVETOKEN,
-  aaveAbi,
-  avalancheProvider
-);
-const ethereumAaveContract = new ethers.Contract(
-  ADDRESS.ETHEREUM.AAVETOKEN,
-  aaveAbi,
-  ethereumProvider
-);
-
-const polygonAaveIncentivesContract = new ethers.Contract(
-  polygonAaveIncentives,
-  aaveIncentivesAbi,
-  polygonProvider
-);
-const avalancheAaveIncentivesContract = new ethers.Contract(
-  avalancheAaveIncentives,
-  aaveIncentivesAbi,
-  avalancheProvider
-);
-const ethereumAaveIncentivesContract = new ethers.Contract(
-  ethereumAaveIncentives,
-  aaveIncentivesAbi,
-  ethereumProvider
-);
 
 // birdCALL ------------------------------------------->>>>>>>>>>> ALERTS
 // ......................................................................
@@ -473,11 +473,34 @@ async function tvlTotal() {
       avalancheAaveContract.balanceOf(ADDRESS.AVALANCHE.YIELDSOURCE),
       ethereumAaveContract.balanceOf(ADDRESS.ETHEREUM.YIELDSOURCE),
     ]);
+
   polygonAaveBalance = usdc(polygonAaveBalance);
   avalancheAaveBalance = usdc(avalancheAaveBalance);
   ethereumAaveBalance = usdc(ethereumAaveBalance);
   let total = polygonAaveBalance + avalancheAaveBalance + ethereumAaveBalance;
   return total;
+}
+async function apr() {
+  try {
+    let tvlNow = await tvlActive();
+    tvlNow = tvlNow.total;
+    let annualPrize = await prizePerDay();
+    annualPrize = annualPrize * 365;
+    let aprAmount = (annualPrize / tvlNow) * 100;
+    return aprAmount;
+  } catch (error) {
+    console.log(error);
+  }
+}
+async function prizePerDay() {
+  try {
+    let newestDrawId = await prizeTierContract.getNewestDrawId();
+    let prizeTier = await prizeTierContract.getPrizeTier(newestDrawId);
+    let prizePerDayNow = parseFloat(prizeTier[5]) / 1e6;
+    return prizePerDayNow;
+  } catch (error) {
+    console.log(error);
+  }
 }
 async function tvlActive() {
   let timeNow = parseInt(Date.now() / 1000);
@@ -506,7 +529,6 @@ async function tvl() {
       avalancheAaveContract.balanceOf(ADDRESS.AVALANCHE.YIELDSOURCE),
       ethereumAaveContract.balanceOf(ADDRESS.ETHEREUM.YIELDSOURCE),
     ]);
-
   polygonAaveBalance = usdc(polygonAaveBalance);
   avalancheAaveBalance = usdc(avalancheAaveBalance);
   ethereumAaveBalance = usdc(ethereumAaveBalance);
@@ -705,11 +727,11 @@ async function player(address) {
 
     if (balanceRemaining > 1) {
       withdrawString +=
-        "\nCurrent Balance " + emoji("usdc") + " " + commas(balanceRemaining);
+        "\n Tickets Held" + emoji("usdc") + " " + commas(balanceRemaining);
     }
     if (polygonDelegatedBalance > balanceRemaining) {
       withdrawString +=
-        "\nDelegated Balance " +
+        "Tickets + Delegation " +
         emoji("usdc") +
         " " +
         commas(parseFloat(polygonDelegatedBalance));
@@ -772,14 +794,14 @@ async function player(address) {
 
     if (balanceRemainingAvalanche > 1) {
       withdrawString +=
-        "\n Current Balance " +
+        "\n Tickets Held " +
         emoji("usdc") +
         " " +
         commas(balanceRemainingAvalanche);
     }
     if (avalancheDelegatedBalance > balanceRemainingAvalanche) {
       withdrawString +=
-        "\nDelegated Balance " +
+        "\nTickets + Delegation " +
         emoji("usdc") +
         " " +
         commas(parseFloat(avalancheDelegatedBalance));
@@ -864,6 +886,7 @@ async function player(address) {
 
 async function liquidity() {
   try {
+    console.log("liquidity function");
     let [polygonLiquidity, avalancheLiquidity, ethereumLiquidity] =
       await Promise.all([
         polygonTicketContract.balanceOf(ADDRESS.POLYGON.LIQUIDITY),
@@ -973,9 +996,8 @@ async function wins(address) {
     for (
       let entry = 0;
       entry < drawResult.length;
-      entry += 1 // console.log("0", drawResult[0]);
-    ) // console.log("entry number", entry);
-    // console.log("entry array", drawResult[entry]);
+      entry += 1 // console.log("0", drawResult[0]); // console.log("entry number", entry);
+    ) // console.log("entry array", drawResult[entry]);
     // console.log(drawResult[entry].claimable_prizes[0]);
     {
       if (parseFloat(drawResult[entry].claimable_prizes[0]) !== null) {
@@ -1755,6 +1777,16 @@ async function go() {
           draw = prizeQuery[2];
           prizes(address, draw).then((prizeText) => {
             message.channel.send(prizeText);
+          });
+        }
+        if (message.content === "=apr") {
+          apr().then((aprText) => {
+            let aprMessage = aprText.toFixed(2);
+            const aprEmbed = new MessageEmbed()
+              .setColor("#0099ff")
+              .setTitle("Current Prize APR")
+              .setDescription(":trophy: " + aprMessage + "%");
+            message.channel.send({ embeds: [aprEmbed] });
           });
         }
         if (message.content === "=tvl") {
