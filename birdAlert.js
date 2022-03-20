@@ -42,7 +42,7 @@ async function getCurrentDraw() {
   console.log("current draw ", draws);
 
   // hardcode draw# - prob need to change lastAlertedDraw.txt
-  //  draws = "147"
+  //   draws = "153"
 
   return draws;
 }
@@ -272,8 +272,10 @@ async function go() {
   let query = "SELECT DISCORD,WALLET from addresses";
   let queryRun = await db.any(query);
 
+
   queryRun.forEach((player) => {
-    prizes(player.discord, player.wallet, drawId);
+      prizes(player.discord, player.wallet, drawId);
+
   });
   client.login(process.env.BOT_KEY);
 }else{console.log("not a new draw posted")}
