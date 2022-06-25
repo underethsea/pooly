@@ -6,6 +6,7 @@ const ethers = require("ethers");
 const fetch = require("cross-fetch");
 const Discord = require("discord.js");
 const { ADDRESS } = require("./address.js");
+const { DISCORDID } = require("./discordId.js")
 const {ABI} = require("./abi.js")
 const { MessageEmbed } = require("discord.js");
 dotenv.config();
@@ -14,33 +15,25 @@ const client = new Discord.Client({
   intents: ["GUILDS", "GUILD_MESSAGES", "DIRECT_MESSAGES"],
 });
 var emoji = require("./functions/emoji.js");
-
 var calculateWinnings = require("./functions/simulate.js");
 
-const ethereumEndpoint =
+// const ethereumEndpoint =
   "https://mainnet.infura.io/v3/" + process.env.ETHEREUM_KEY;
-const polygonEndpoint =
+// const ethereumEndpoint = "https://eth-mainnet.alchemyapi.io/v2/IoY2MivSyvhBktzHoyto2ZqUsG2BEWth"
+
+// const polygonEndpoint =
   "https://polygon-mainnet.g.alchemy.com/v2/" + process.env.POLYGON_KEY;
-// const avalancheEndpoint = "https://api.avax.network/ext/bc/C/rpc";
-const avalancheEndpoint = "https://rpc.ankr.com/avalanche";
+const ethereumEndpoint = "https://eth-mainnet.alchemyapi.io/v2/VXLn7dJrHkrYPJi-HwbdkSG7grw7O2FT"
+const polygonEndpoint = "https://polygon-mainnet.g.alchemy.com/v2/Km46Q-DZ04ftPfKNgPwaP6cp957PJHNl"
+const avalancheEndpoint = "https://api.avax.network/ext/bc/C/rpc";
+// const avalancheEndpoint = "https://rpc.ankr.com/avalanche";
 const polygonProvider = new ethers.providers.JsonRpcProvider(polygonEndpoint);
 const avalancheProvider = new ethers.providers.JsonRpcProvider(
   avalancheEndpoint
 );
 const ethereumProvider = new ethers.providers.JsonRpcProvider(ethereumEndpoint);
 
-// const polygonAaveIncentives = "0x357D51124f59836DeD84c8a1730D72B749d8BC23";
-// const ethereumAaveIncentives = "0xd784927Ff2f95ba542BfC824c8a8a98F3495f6b5";
-// const avalancheAaveIncentives = "0x01D83Fe6A10D2f2B7AF17034343746188272cAc9";
 
-const ethereumPrizeTier = "0xdD1cba915Be9c7a1e60c4B99DADE1FC49F67f80D";
-
-const execChannelId = "895375558966390834";
-const botChannelId = "878246045048520704";
-const botChannelTestId = "932504732818362378";
-const winnersChannelId = "904034122903748659";
-const claimsChannelId = "917547918225981503";
-const turnstileChannelId = "943062268139175957";
 
 const polygonTicketContract = new ethers.Contract(
   ADDRESS.POLYGON.TICKET,
@@ -130,6 +123,7 @@ const avalancheClaimFilter = {
 // ......................................................................
 // ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+
 const cn = {
   host: "localhost", // server name or IP address;
   port: 5432,
@@ -139,6 +133,54 @@ const cn = {
 };
 const db = pgp(cn);
 
+const cnLP = {
+  host: "localhost", // server name or IP address;
+  port: 5432,
+  database: "lp",
+  user: process.env.USER,
+  password: process.env.PASSWORD,
+};
+const dbLP = pgp(cnLP);
+async function getLp() {
+let query = "SELECT nft,pool,eth,total,time FROM nfts;"
+try {
+let nfts = await dbLP.any(query);
+        var embed = new Discord.MessageEmbed();
+embed.setTitle('Protocol Owned Liquidity')
+let poolEthPrice = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=pooltogether&vs_currencies=eth')
+poolEthPrice = await poolEthPrice.json()
+let poolWethPrice = poolEthPrice["pooltogether"].eth;
+
+poolText = "";
+ethText = "";
+totalText = "";
+totalPool = 0
+totalEth = 0
+totalValue = 0
+nfts.forEach(nft=>{
+totalPool += parseFloat(nft.pool)
+totalEth += parseFloat(nft.eth)
+totalValue += parseFloat(nft.total)
+poolText += parseInt(nft.pool) + "\n";
+ethText += nft.eth + "\n";
+totalText += "$" + parseInt(nft.total) + "\n";
+
+})
+poolText += "-------\n"+totalPool.toFixed(0)
+ethText += "-------\n"+totalEth.toFixed(3)
+totalText += "-------\n$"+totalValue.toFixed(0)
+embed.setDescription("GECKO (GATEIO) `"+poolWethPrice+"`\nData from <t:"+nfts[0].time+":R>")
+embed.addFields(
+        { name: 'POOL', value: poolText , inline: true },
+        { name: 'WETH', value: ethText , inline: true },
+        { name: 'TOTAL', value: totalText , inline: true }
+    )
+// embed.setFooter("POOL `"+totalPool.toFixed(0)+"` WETH `"+totalEth.toFixed(3)+"` TOTAL `"+totalValue.toFixed(0)+"`")
+// let footerText = "Data from <t:"+nfts[0].now+":R>"
+// embed.setFooter({text:footerText})
+return embed
+}catch(error){console.log(error)
+}}
 async function getUser(discord) {
   let queryUser =
     "SELECT discord,wallet FROM addresses WHERE discord='" + discord + "';";
@@ -169,9 +211,17 @@ async function removeWallet(discord, wallet) {
 async function addWallet(discord, wallet) {
   try {
     let user = await getUser(discord);
-    if (user.length > 9) {
-      return "You have hit the maximum of 10 wallets";
+    if (user.length > 4) {
+      return "You have hit the maximum of 5 wallets";
     }
+    let polygonDelegatedBalance = await delegatedBalance(wallet,3)
+    let avalancheDelegatedBalance = await delegatedBalance(wallet,4)
+    let ethereumDelegatedBalance = await delegatedBalance(wallet,1)
+    polygonDelegatedBalance = parseFloat(polygonDelegatedBalance)
+    avalancheDelegatedBalance = parseFloat(avalancheDelegatedBalance)
+   ethereumDelegatedBalance = parseFloat(ethereumDelegatedBalance)
+    let totalBalance = polygonDelegatedBalance + avalancheDelegatedBalance + ethereumDelegatedBalance
+   if(totalBalance > 3) {
     let queryAddWallet =
       "INSERT INTO addresses(DISCORD,WALLET) values('" +
       discord +
@@ -181,6 +231,7 @@ async function addWallet(discord, wallet) {
     //   console.log("adding: ",queryAddWallet)
     let addWallet = await db.any(queryAddWallet);
     return "Wallet `" + wallet + "` added!";
+}else  {return "No ticket balance found on address `"+wallet+"`"}
   } catch (error) {
     console.log(error);
     return "Could not add wallet friend, sorry!";
@@ -207,6 +258,13 @@ async function playerWallets(discord) {
     console.log(error);
     return "Could not find any wallets. try `=add <wallet address>`";
   }
+}
+async function winners(draw) {
+let drawId = parseInt(draw)
+let drawFetch = await fetch("https://poolexplorer.xyz/draw"+drawId)
+drawFetch = await drawFetch.json()
+let winnerCount =  drawFetch.length
+return winnerCount.toString()
 }
 
 async function prizes(address, draw) {
@@ -293,6 +351,18 @@ async function prizes(address, draw) {
     console.log(error);
   }
 }
+
+const discordEmbed = (title, description) => {
+  try{
+  let titleString = title.toString()
+  const newEmbed = new MessageEmbed()
+        .setColor("#9B59B6")
+        .setTitle(titleString)
+        .setDescription(description);
+        return newEmbed
+  }catch(error) {console.log("discord embed error for title" + title +"\n"+error)}
+}
+
 const commas = (number) => {
   let fixed = number.toFixed();
   return fixed.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
@@ -361,7 +431,9 @@ async function delegatedBalance(address, network) {
     balance = ethers.utils.formatUnits(balance, 6);
     return balance;
   } catch (error) {
+   
     console.log(error);
+return 0
   }
 }
 
@@ -465,29 +537,26 @@ async function aaveRewards() {
   };
   return incentives;
 }
-
-async function tvlTotal() {
-  let [polygonAaveBalance, avalancheAaveBalance, ethereumAaveBalance] =
-    await Promise.all([
-      polygonAaveContract.balanceOf(ADDRESS.POLYGON.YIELDSOURCE),
-      avalancheAaveContract.balanceOf(ADDRESS.AVALANCHE.YIELDSOURCE),
-      ethereumAaveContract.balanceOf(ADDRESS.ETHEREUM.YIELDSOURCE),
-    ]);
-
-  polygonAaveBalance = usdc(polygonAaveBalance);
-  avalancheAaveBalance = usdc(avalancheAaveBalance);
-  ethereumAaveBalance = usdc(ethereumAaveBalance);
-  let total = polygonAaveBalance + avalancheAaveBalance + ethereumAaveBalance;
-  return total;
+ async function droppedPrizes(address) {
+        let newAddress = address.substring(1,address.length);
+        newAddress = "\\" + newAddress;
+    console.log(newAddress);
+    let query = "select dropped_prizes,network,draw_id from prizes where address = '" + newAddress + "' and not (dropped_prizes='{}')";
+    console.log(query)
 }
+
 async function apr() {
   try {
     let tvlNow = await tvlActive();
     tvlNow = tvlNow.total;
     let annualPrize = await prizePerDay();
     annualPrize = annualPrize * 365;
-    let aprAmount = (annualPrize / tvlNow) * 100;
-    return aprAmount;
+    let aprData = {
+      tvl: tvlNow,
+      prizePerYear: annualPrize,
+      apr: (annualPrize / tvlNow) * 100
+    }
+    return aprData;
   } catch (error) {
     console.log(error);
   }
@@ -510,6 +579,7 @@ async function tvlActive() {
       avalancheTicketContract.getTotalSupplyAt(timeNow),
       ethereumTicketContract.getTotalSupplyAt(timeNow),
     ]);
+console.log(polygonGetTotalSupply,avalancheGetTotalSupply,"eth",ethereumGetTotalSupply)
   let tvlActiveTotal =
     usdc(polygonGetTotalSupply) +
     usdc(avalancheGetTotalSupply) +
@@ -581,13 +651,13 @@ async function flushable() {
   let avalancheFlushable = avalancheAaveBalance - avalancheTotalSupply;
   let ethereumFlushable = ethereumAaveBalance - ethereumTotalSupply;
 
-  let flushable =
-    commas(polygonFlushable) +
-    "   ETH: " +
-    commas(ethereumFlushable) +
-    "    AVAX: " +
-    commas(avalancheFlushable);
-  return "FLUSHABLE YIELD ||    POLY: " + flushable;
+  let flushable = discordEmbed(
+    "Flushable Yield",
+    emoji("polygon") + " `" + commas(polygonFlushable) + "`\n" +
+    emoji("avalanche") + " `" + commas(avalancheFlushable) + "`\n" +
+    emoji("ethereum") + " `" + commas(ethereumFlushable) + "`" 
+  )
+  return flushable;
 }
 const oddsNumber = (amount) => {
   if (amount >= 100) {
@@ -601,8 +671,8 @@ async function odds(amount) {
     let tvl = await tvlActive();
     tvl = tvl.total;
     console.log("odds tvl", tvl);
-    const prizeTier = [3, 48, 192, 768];
-    let tierPrizes = [1000, 50, 10, 5];
+    const prizeTier = [1, 3, 12, 48, 192, 768];
+    let tierPrizes = [1000,100, 50, 10,5, 5];
     let oddsResult = [];
     let totalPrizes = 0;
     prizeTier.forEach((tier) => {
@@ -731,7 +801,7 @@ async function player(address) {
     }
     if (polygonDelegatedBalance > balanceRemaining) {
       withdrawString +=
-        "Tickets + Delegation " +
+        "\n Tickets + Delegation " +
         emoji("usdc") +
         " " +
         commas(parseFloat(polygonDelegatedBalance));
@@ -893,20 +963,79 @@ async function liquidity() {
         avalancheTicketContract.balanceOf(ADDRESS.AVALANCHE.LIQUIDITY),
         ethereumTicketContract.balanceOf(ADDRESS.ETHEREUM.LIQUIDITY),
       ]);
-    let liquidityString =
-      commas(usdc(polygonLiquidity)) +
-      "    ETH: " +
-      commas(usdc(ethereumLiquidity)) +
-      "    AVAX: " +
-      commas(usdc(avalancheLiquidity));
-    // console.log("liquidity check: ", liquidityString);
-    return "PRIZE LIQUIDITY ||    POLY: " + liquidityString;
-    // When the client is ready, run this code (only once)
+      let liquidityData = {
+        polygon: polygonLiquidity,
+        ethereum: ethereumLiquidity,
+        avalanche: avalancheLiquidity
+      }
+      return liquidityData;
   } catch (error) {
     console.log(error);
     return "Could not fetch";
   }
 }
+
+
+async function allSea(collectionName) {
+  try{
+    let fetchedSea = await seaFetch(collectionName)
+    let floorPrice = fetchedSea.stats.floor_price
+    let numOwners = fetchedSea.stats.num_owners
+    let totalVolume = fetchedSea.stats.total_volume
+    let totalSupply = fetchedSea.stats.total_supply
+    let seaEmbed = new MessageEmbed()
+    .setColor("#0099ff")
+    .setTitle("OpenSea Details for `"  + collectionName + "`")
+    .setDescription("Floor Price `" + floorPrice + "`" +
+    "\nOwners `" + numOwners + "`" +
+    "\nTotal Volume `" + totalVolume.toFixed(0) + "`" +
+    "\nTotal Supply `" + totalSupply + "`"
+    )
+    .setImage();
+    return seaEmbed
+
+}catch(error){console.log(error)}
+}
+async function gallery () {
+  let collection = ["tubby-cats","bobutoken","murixhaus","mfers","milady","genesis-oath","snooponsound","white-rabbit-producer-pass"];
+let descriptionText = ""
+for(x=0;x<collection.length;x++){
+  let fetchedSea = await seaFetch(collection[x])
+        descriptionText = descriptionText + collection[x] + " `" + fetchedSea.stats.floor_price + "`\n" 
+  }
+  let seaEmbed = new MessageEmbed()
+    .setColor("#0099ff")
+    .setTitle("NFTogether Gallery Floor Prices")
+    .setDescription(descriptionText)
+    .setImage();
+    return seaEmbed
+  
+}
+async function seaFloor(collectionName) {
+    try{
+      
+        let fetchedSea = await seaFetch(collectionName)
+        let floorPrice = fetchedSea.stats.floor_price
+        if (floorPrice === null) {
+            let oneDayAvgPrice = parseFloat(fetchedSea.stats.one_day_average_price) 
+            return "__OpenSea__ One Day Average Price For:\n`"+ collectionName + "` \ \ \ \ \ `" + oneDayAvgPrice.toFixed(2) + "` \ \ \ `ETH`"
+
+        }else {
+        return "__OpenSea__ Floor Price For:\n`"+ collectionName + "` \ \ \ \ \ `" + floorPrice + "` \ \ \ `ETH`"
+        }
+
+    }catch(error) {return "Collection not found";console.log(error)}
+}
+
+async function seaFetch(collectionName) {
+  try {
+    let fetchSea = await fetch("https://api.opensea.io/api/v1/collection/" + collectionName + "/stats")
+        let fetchedSea = await fetchSea.json()
+        return fetchedSea
+
+  }catch(error){console.log(error)}
+}
+
 async function wins2(address) {
   try {
     let fetchAddress = "https://poolexplorer.xyz/player?address=" + address;
@@ -979,46 +1108,6 @@ async function wins2(address) {
     return "Could not find that one friend. Try `=wins <address>`";
   }
 }
-async function wins(address) {
-  try {
-    let fetchAddress = "https://poolexplorer.xyz/player?address=" + address;
-    let drawFetch = await fetch(fetchAddress);
-    // console.log(fetchAddress);
-    let drawResult = await drawFetch.json();
-
-    // temporarrry
-    drawResult = drawResult.filter(function (entry) {
-      return entry.network === "polygon";
-    });
-    // console.log(drawResult[0]);
-    // console.log(drawResult.length);
-    let winString = "WINS || ";
-    for (
-      let entry = 0;
-      entry < drawResult.length;
-      entry += 1 // console.log("0", drawResult[0]); // console.log("entry number", entry);
-    ) // console.log("entry array", drawResult[entry]);
-    // console.log(drawResult[entry].claimable_prizes[0]);
-    {
-      if (parseFloat(drawResult[entry].claimable_prizes[0]) !== null) {
-        winString +=
-          "   " +
-          emoji(drawResult[entry].network) +
-          " DRAW " +
-          drawResult[entry].draw_id +
-          "";
-      }
-    }
-    if (winString !== "WINS || ") {
-      return winString;
-    } else {
-      return "No wins yet";
-    }
-  } catch (error) {
-    console.log(error);
-    return "Can't find that one friend.";
-  }
-}
 
 async function lucky(draw) {
   try {
@@ -1036,18 +1125,6 @@ async function lucky(draw) {
       return parseFloat(a.l) - parseFloat(b.l);
     });
     luckyResult.reverse();
-    // return (
-    //   "LUCKYIEST ||    DRAW " +
-    //   draw +
-    //   "   " +
-    //   emoji(luckyResult[0].n) +
-    //   " " +
-    //   luckyResult[0].a +
-    //   " WON: " +
-    //   luckyResult[0].w +
-    //   " BALANCE: " +
-    //   parseInt(luckyResult[0].g)
-    // );
     return luckyResult;
   } catch (error) {
     console.log(error);
@@ -1070,18 +1147,6 @@ async function luckyg(draw) {
       return parseFloat(a.l) - parseFloat(b.l);
     });
     luckyResult.reverse();
-    // return (
-    //   "LUCKYIEST ||    DRAW " +
-    //   draw +
-    //   "   " +
-    //   emoji(luckyResult[0].n) +
-    //   " " +
-    //   luckyResult[0].a +
-    //   " WON: " +
-    //   luckyResult[0].w +
-    //   " BALANCE: " +
-    //   parseInt(luckyResult[0].g)
-    // );
     return luckyResult;
   } catch (error) {
     console.log(error);
@@ -1244,7 +1309,7 @@ async function go() {
         )
         .setDescription(depositString);
       client.channels.cache
-        .get(turnstileChannelId)
+        .get(DISCORDID.PT.TURNSTILE)
         .send({ embeds: [depositEmbed] });
     }
   });
@@ -1276,7 +1341,7 @@ async function go() {
           .setDescription(withdrawString);
 
         client.channels.cache
-          .get(turnstileChannelId)
+          .get(DISCORDID.PT.TURNSTILE)
           .send({ embeds: [withdrawEmbed] });
       });
     }
@@ -1372,7 +1437,7 @@ async function go() {
         )
         .setDescription(depositString);
       client.channels.cache
-        .get(turnstileChannelId)
+        .get(DISCORDID.PT.TURNSTILE)
         .send({ embeds: [depositEmbed] });
     }
   });
@@ -1404,7 +1469,7 @@ async function go() {
           .setDescription(withdrawString);
 
         client.channels.cache
-          .get(turnstileChannelId)
+          .get(DISCORDID.PT.TURNSTILE)
           .send({ embeds: [withdrawEmbed] });
       });
     }
@@ -1495,7 +1560,7 @@ async function go() {
       )
       .setDescription(claimString);
 
-    client.channels.cache.get(claimsChannelId).send({ embeds: [claimEmbed] });
+    client.channels.cache.get(DISCORDID.PT.CLAIMS).send({ embeds: [claimEmbed] });
   });
   avalancheProvider.on(avalancheClaimFilter, (claimEvent) => {
     //  console.log(claimEvent.transactionHash)
@@ -1523,7 +1588,7 @@ async function go() {
       )
       .setDescription(claimString);
 
-    client.channels.cache.get(claimsChannelId).send({ embeds: [claimEmbed] });
+    client.channels.cache.get(DISCORDID.PT.CLAIMS).send({ embeds: [claimEmbed] });
   });
 
   client.on("messageCreate", (message) => {
@@ -1606,6 +1671,8 @@ async function go() {
         }
 
         if (message.content.startsWith("=add")) {
+          if(message.content.includes(">") || message.content.includes("<")) {
+          message.reply("Try without the `<>`, friend")}else{
           let addQuery = message.content.split(" ");
           wallet = addQuery[1];
 
@@ -1618,7 +1685,7 @@ async function go() {
             });
           } catch (error) {
             message.author.send("Invalid wallet address.");
-          }
+          }}
         }
         if (
           message.content.startsWith("pooly help") ||
@@ -1666,7 +1733,7 @@ async function go() {
           odds(amount).then((oddsText) => {
             const oddsEmbed = new MessageEmbed()
               .setColor("#0099ff")
-              .setTitle("Daily Odds with " + emoji("usdc") + " " + amount)
+              .setTitle("Daily Odds with " + emoji("usdc") + " " + commas(parseFloat(amount)))
               .setDescription(oddsText);
             message.reply({ embeds: [oddsEmbed] });
           });
@@ -1678,15 +1745,6 @@ async function go() {
             message.author.send(oddsText);
           });
         }
-        // if (message.content.startsWith("=simulate")) {
-        //   let apyQuery = message.content.split(" ");
-        //   amount = apyQuery[1];
-        //   if (amount < 2 || amount > 20000000)
-        //   {message.author.send("What amount is that friend?")}else{
-        //   simulateApy(amount,28000000,.05).then((apyText) => {
-        //     message.author.send("100 SIMULATIONS || \ \ \ DEPOSIT: " + amount + " \ \ \  APR: " + apyText.unlucky + "% - " + apyText.lucky + "% \ \ \ AVG: " + apyText.average + "%");
-        //   });}
-        // }
         if (message.content.startsWith("=wins")) {
           let winsQuery = message.content.split(" ");
           address = winsQuery[1];
@@ -1695,21 +1753,60 @@ async function go() {
           });
         }
       }
-      // if(message.channel.id === winnersChannelId) {
-      //   if (message.content.startsWith("=odds")) {
-      //     let oddsQuery = message.content.split(" ");
-      //     amount = oddsQuery[1]
-      //     odds(amount).then((oddsText) => {message.channel.send(oddsText)})
-      //  }
-      // }
+if(message.channel.id === DISCORDID.PT.TWG) {
+if(message.content === "=pol") {
+getLp().then(lpText => message.reply({embeds:[lpText]}))}
+}
       if (
-        message.channel.id === botChannelId ||
-        message.channel.id === execChannelId ||
-        message.channel.id === botChannelTestId
+        message.channel.id === DISCORDID.PT.BOT ||
+        message.channel.id === DISCORDID.PT.EXECUTIVE ||
+        message.channel.id === DISCORDID.US.TEST ||
+        message.channel.id === DISCORDID.US.NFT
       ) {
+if (message.content.startsWith("=add")) {message.reply('Send me a DM to use `=add` my friend')}
+        if(message.content.startsWith("=sea")) {
+          let seaRequest = message.content.split(" ");
+          let collection = seaRequest[1];
+          allSea(collection).then(sea =>{message.reply({embeds:[sea]})}
+
+          )
+  }
+if(message.content === "=pol") {
+getLp().then(lpText => message.reply({embeds:[lpText]}))}
+ if(message.content.startsWith("=winners")) {
+    let winnersRequest =  message.content.split(" ");
+    let drawId = winnersRequest[1];
+    winners(drawId).then(winnerReturn => {
+message.reply('Draw `' + drawId + "` had " + winnerReturn + " winners!")})}
+ 
+  if(message.content.startsWith("=gallery")) {
+    gallery().then(sea =>{message.reply({embeds:[sea]})}
+    )
+}
+  if(message.content.startsWith("=floor")) {
+    let seaRequest = message.content.split(" ");
+    let collection = seaRequest[1];
+    seaFloor(collection).then(sea =>{message.reply(sea)}
+
+    )
+}
         if (message.content === "=liquidity") {
-          liquidity().then((liquidityText) =>
-            message.channel.send(liquidityText)
+          liquidity().then((liquidityData) =>
+          {
+            let liquidityString = emoji("polygon") + " `" +
+              commas(usdc(liquidityData.polygon)) +
+              "`\n"+emoji("ethereum") + " `" +
+              commas(usdc(liquidityData.ethereum)) +
+              "`\n"+emoji("avalanche") + " `" +
+            
+              commas(usdc(liquidityData.avalanche)) + "`";
+              const liquidityEmbed = new MessageEmbed()
+              .setColor("#0099ff")
+              .setTitle("Prize Liquidity")
+              .setDescription(liquidityString);
+
+            message.reply({ embeds: [liquidityEmbed] });
+          }
           );
         }
         if (message.content.startsWith("=simulate")) {
@@ -1717,7 +1814,7 @@ async function go() {
           amount = apyQuery[1];
           if (amount < 2 || amount > 20000000) {
             message.reply("What amount is that friend?");
-          } else {
+          } else {message.reply("I'm going to do a bunch of calculations, be right back!");
             simulateApy(amount, 30000000, 0.05).then((apyText) => {
               let simulateText =
                 "<:TokenUSDC:823404729634652220> DEPOSIT `" +
@@ -1726,12 +1823,71 @@ async function go() {
                 apyText.unlucky +
                 "% - " +
                 apyText.lucky +
-                "%`  \n:scales: Average `" +
+                "%`\n:scales: Average `" +
                 apyText.average +
                 "%`\n\n*Results out of 100 Simulations*";
               const simulateEmbed = new MessageEmbed()
                 .setColor("#0099ff")
                 .setTitle("Prize Simulator")
+                .setDescription(simulateText);
+
+              message.reply({ embeds: [simulateEmbed] });
+            });
+          }
+        }
+        if (message.content.startsWith("=ptip66a")) {
+          let apyQuery = message.content.split(" ");
+          amount = apyQuery[1];
+          if (amount < 2 || amount > 20000000) {
+            message.reply("What amount is that friend?");
+          } else {
+            optionA(amount, 30000000, 0.05).then((apyText) => {
+              let simulateText =
+                "<:TokenUSDC:823404729634652220> DEPOSIT `" +
+                commas(parseFloat(amount)) +
+                "`\n:calendar_spiral: APR Range `" +
+                apyText.unlucky +
+                "% - " +
+                apyText.lucky +
+                "%`\n:scales: Average `" +
+                apyText.average +
+                "%`\n:first_place: Avg 1st prize day `" +
+                apyText.firstPrizeDay +
+                "`\n\n*Results out of 100 Simulations*";
+                apyText.lucky 
+                
+              const simulateEmbed = new MessageEmbed()
+                .setColor("#0099ff")
+                .setTitle("Prize Simulator - PTIP-66 Option A")
+                .setDescription(simulateText);
+
+              message.reply({ embeds: [simulateEmbed] });
+            });
+          }
+        }
+
+        if (message.content.startsWith("=ptip66b")) {
+          let apyQuery = message.content.split(" ");
+          amount = apyQuery[1];
+          if (amount < 2 || amount > 20000000) {
+            message.reply("What amount is that friend?");
+          } else {
+            optionB(amount, 30000000, 0.05).then((apyText) => {
+              let simulateText =
+                "<:TokenUSDC:823404729634652220> DEPOSIT `" +
+                commas(parseFloat(amount)) +
+                "`\n:calendar_spiral: APR Range `" +
+                apyText.unlucky +
+                "% - " +
+                apyText.lucky +
+                "%`\n:scales: Average `" +
+                apyText.average +
+                "%`\n:first_place: Avg 1st prize day `" +
+                apyText.firstPrizeDay +
+                "`\n\n*Results out of 100 Simulations*";
+              const simulateEmbed = new MessageEmbed()
+                .setColor("#0099ff")
+                .setTitle("Prize Simulator - PTIP-66 Option B")
                 .setDescription(simulateText);
 
               message.reply({ embeds: [simulateEmbed] });
@@ -1781,11 +1937,10 @@ async function go() {
         }
         if (message.content === "=apr") {
           apr().then((aprText) => {
-            let aprMessage = aprText.toFixed(2);
             const aprEmbed = new MessageEmbed()
               .setColor("#0099ff")
               .setTitle("Current Prize APR")
-              .setDescription(":trophy: " + aprMessage + "%");
+              .setDescription(":trophy: `" + aprText.apr.toFixed(2) + "%`\n" + "TVL `" + commas(aprText.tvl) + "`\n" + "Annual prize `" + commas(aprText.prizePerYear) + "`");
             message.channel.send({ embeds: [aprEmbed] });
           });
         }
@@ -1837,7 +1992,7 @@ async function go() {
         }
         if (message.content === "=flushable") {
           flushable().then((flushableText) =>
-            message.channel.send(flushableText)
+            message.channel.send({embeds: [flushableText]})
           );
         }
         if (message.content.startsWith("=gas")) {
@@ -1951,7 +2106,7 @@ async function go() {
           odds(amount).then((oddsText) => {
             const oddsEmbed = new MessageEmbed()
               .setColor("#0099ff")
-              .setTitle("Daily Odds with " + emoji("usdc") + " " + amount)
+              .setTitle("Daily Odds with " + emoji("usdc") + " " + commas(parseFloat(amount)))
               .setDescription(oddsText);
             message.reply({ embeds: [oddsEmbed] });
           });
@@ -2036,34 +2191,45 @@ const maxPrizes = 2;
 
 const gasToClaim = 0;
 // const tierNumPrizes = [1, 3, 12, 48, 192, 768, 3072];
-const tierNumPrizes = [3, 48, 192, 768]; // newly proposed
-
 // const tierPrizes = [2500, 500, 200, 50, 10, 5, 1];
-const tierPrizes = [1000, 50, 10, 5]; //newly proposed
 
-async function simulateApy(depositAmount, tvl, gasToClaim) {
+
+
+// let tierNumPrizes = [1, 3, 12, 48, 192, 768]; // option A
+// let tierPrizes = [1000, 100, 50, 10, 5, 5]; // option A
+
+function scalingFunction(deposit) {
   let scalingVariable = 1; // used to make calculating prizes faster as deposit grows
-  if (depositAmount > 200) {
-    scalingVariable = 2;
-  }
-  if (depositAmount > 1999) {
+
+  if (deposit > 1999 && deposit > 200) {
     scalingVariable = 5;
   }
-  if (depositAmount > 4999) {
+  if (deposit > 4999) {
     scalingVariable = 10;
   }
-  if (depositAmount > 9999) {
+  if (deposit > 9999) {
     scalingVariable = 20;
   }
-  if (depositAmount > 19999) {
-    scalingVariable = depositAmount / 400;
+  if (deposit > 19999) {
+    scalingVariable = deposit / 400;
   }
+  console.log(scalingVariable)
 
-  // charts if you wanna get cray cray
-  // var asciichart = require ('asciichart')
+  return scalingVariable
+
+}
+async function simulateApy(depositAmount, removedVar, gasToClaim) {
+
+  let tierNumPrizes = [1, 3, 12, 48, 192, 768]; // newly proposed
+let tierPrizes = [1000, 100, 50, 10, 5, 5]; //newly proposed
+  
   let totalPrizeValue = 0;
   let totalPrizes = 0;
   let gasCost = 0;
+  console.log(tierNumPrizes)
+
+  let scalingVariable = scalingFunction(depositAmount)
+  console.log(scalingVariable)
 
   for (x = 0; x < tierNumPrizes.length; x++) {
     totalPrizeValue += tierNumPrizes[x] * tierPrizes[x];
@@ -2071,6 +2237,9 @@ async function simulateApy(depositAmount, tvl, gasToClaim) {
       totalPrizes += tierNumPrizes[x];
     }
   }
+  let tvl = await tvlActive()
+  tvl= tvl.total;
+  console.log(tvl)
   const dailyProbWin = 1 / (tvl / totalPrizes / scalingVariable); // daily dollar probability of winning
 
   // console.log("total prize value: ", totalPrizeValue);
@@ -2099,6 +2268,7 @@ async function simulateApy(depositAmount, tvl, gasToClaim) {
       totalPrizes,
       dailyProbWin,
       tierPrizesAfterGas,
+      tierNumPrizes,
       maxPrizes
     );
     // log each simulation
@@ -2160,5 +2330,239 @@ async function simulateApy(depositAmount, tvl, gasToClaim) {
   };
   return results;
 }
+
+
+  async function optionA(depositAmount, removedVar, gasToClaim) {
+  
+    let tierNumPrizes = [1, 3, 12, 48, 192, 768]; // option A
+
+let tierPrizes = [1000, 100, 50, 10, 5, 5]; // option A
+
+    let totalPrizeValue = 0;
+    let totalPrizes = 0;
+    let gasCost = 0;
+  
+    let scalingVariable = scalingFunction(depositAmount)
+  
+    for (x = 0; x < tierNumPrizes.length; x++) {
+      totalPrizeValue += tierNumPrizes[x] * tierPrizes[x];
+      if (tierNumPrizes[x] * tierPrizes[x] > 0) {
+        totalPrizes += tierNumPrizes[x];
+      }
+    }
+    console.log(totalPrizes)
+    console.log(totalPrizeValue)
+    let tvl = await tvlActive()
+    tvl= tvl.total;
+    console.log(tvl)
+    const dailyProbWin = 1 / (tvl / totalPrizes / scalingVariable); // daily dollar probability of winning
+  
+    // console.log("total prize value: ", totalPrizeValue);
+    // console.log("total number of prizes: ", totalPrizes);
+  
+    let tierPrizesAfterGas = [];
+  
+    for (x in tierPrizes) {
+      let prizeVal = Math.max(0, tierPrizes[x] - gasToClaim);
+  
+      tierPrizesAfterGas.push(prizeVal);
+    }
+
+  let claimable = 0;
+  let winnings = 0;
+  let min = depositAmount;
+  let max = 0;
+  let claimableAmount = 0;
+  let droppedTotal = 0;
+  let firstPrizeDayTotal = 0;
+  for (x = 0; x < simulationRuns; x++) {
+    winnings = calculateWinnings(
+      depositAmount,
+      simulationDays,
+      scalingVariable,
+      totalPrizes,
+      dailyProbWin,
+      tierPrizesAfterGas,
+      tierNumPrizes,
+      maxPrizes
+    );
+    // log each simulation
+    // console.log(winnings);
+    droppedNumber = winnings[3];
+    droppedTotal += droppedNumber;
+    claimableAmount = winnings[0];
+    claimable += claimableAmount;
+    firstPrizeDayTotal += winnings[4];
+    if (claimableAmount < min) {
+      min = claimableAmount;
+    }
+    if (claimableAmount > max) {
+      max = claimableAmount;
+    }
+  }
+  tierString = "";
+  for (x in tierNumPrizes) {
+    tierString += tierNumPrizes[x] + ": " + tierPrizes[x] + " ";
+  }
+  // console.log("prize tiering: ", tierString);
+  // console.log(
+  //   depositAmount,
+  //   " deposited for ",
+  //   simulationDays,
+  //   " days with gas cost to claim of ",
+  //   gasToClaim
+  // );
+  // console.log("unluckiest player claimable: ", min.toFixed());
+  // console.log("luckiest player claimable: ", max.toFixed());
+
+  let annualized = (365 / simulationDays) * 100;
+  let averageClaimable = claimable / simulationRuns;
+  let averageApr = annualized * (claimable / simulationRuns / depositAmount);
+  let unluckyApr = annualized * (min / depositAmount);
+  let luckyApr = annualized * (max / depositAmount);
+
+  console.log(
+    "average claimable: ",
+    averageClaimable.toFixed(),
+    " ",
+    averageApr.toFixed(2),
+    "% APR"
+  );
+  // console.log("prizes dropped per player", droppedTotal / simulationRuns);
+  // console.log("average first prize day: ",firstPrizeDayTotal/simulationRuns)
+  // console.log("simulated ", simulationRuns, " times with a TVL of ", tvl);
+  // console.dir(prizeResults, { depth: null });
+
+  // more than 100 items
+  // console.log(util.inspect(prizeResults, { maxArrayLength: null }))
+
+  // example ascii chart
+  // console.log (asciichart.plot (prizeResults,{height:30}))
+  let results = {
+    average: averageApr.toFixed(2),
+    unlucky: unluckyApr.toFixed(2),
+    lucky: luckyApr.toFixed(2),
+    firstPrizeDay: firstPrizeDayTotal/simulationRuns
+  };
+  return results;
+}
+
+
+
+async function optionB(depositAmount, removedVar, gasToClaim) {
+  
+  let tierNumPrizes = [1, 3, 12, 48, 192, 3072]; // option A
+
+let tierPrizes = [1500, 200, 50, 10, 5, 1]; // option A
+
+  let totalPrizeValue = 0;
+  let totalPrizes = 0;
+  let gasCost = 0;
+
+  let scalingVariable = scalingFunction(depositAmount)
+
+  for (x = 0; x < tierNumPrizes.length; x++) {
+    totalPrizeValue += tierNumPrizes[x] * tierPrizes[x];
+    if (tierNumPrizes[x] * tierPrizes[x] > 0) {
+      totalPrizes += tierNumPrizes[x];
+    }
+  }
+  console.log(totalPrizes)
+  console.log(totalPrizeValue)
+  let tvl = await tvlActive()
+  tvl= tvl.total;
+  console.log(tvl)
+  const dailyProbWin = 1 / (tvl / totalPrizes / scalingVariable); // daily dollar probability of winning
+
+  // console.log("total prize value: ", totalPrizeValue);
+  // console.log("total number of prizes: ", totalPrizes);
+
+  let tierPrizesAfterGas = [];
+
+  for (x in tierPrizes) {
+    let prizeVal = Math.max(0, tierPrizes[x] - gasToClaim);
+
+    tierPrizesAfterGas.push(prizeVal);
+  }
+
+let claimable = 0;
+let winnings = 0;
+let min = depositAmount;
+let max = 0;
+let claimableAmount = 0;
+let droppedTotal = 0;
+let firstPrizeDayTotal = 0;
+for (x = 0; x < simulationRuns; x++) {
+  winnings = calculateWinnings(
+    depositAmount,
+    simulationDays,
+    scalingVariable,
+    totalPrizes,
+    dailyProbWin,
+    tierPrizesAfterGas,
+    tierNumPrizes,
+    maxPrizes
+  );
+  // log each simulation
+  // console.log(winnings);
+  droppedNumber = winnings[3];
+  droppedTotal += droppedNumber;
+  claimableAmount = winnings[0];
+  claimable += claimableAmount;
+  firstPrizeDayTotal += winnings[4];
+  if (claimableAmount < min) {
+    min = claimableAmount;
+  }
+  if (claimableAmount > max) {
+    max = claimableAmount;
+  }
+}
+tierString = "";
+for (x in tierNumPrizes) {
+  tierString += tierNumPrizes[x] + ": " + tierPrizes[x] + " ";
+}
+// console.log("prize tiering: ", tierString);
+// console.log(
+//   depositAmount,
+//   " deposited for ",
+//   simulationDays,
+//   " days with gas cost to claim of ",
+//   gasToClaim
+// );
+// console.log("unluckiest player claimable: ", min.toFixed());
+// console.log("luckiest player claimable: ", max.toFixed());
+
+let annualized = (365 / simulationDays) * 100;
+let averageClaimable = claimable / simulationRuns;
+let averageApr = annualized * (claimable / simulationRuns / depositAmount);
+let unluckyApr = annualized * (min / depositAmount);
+let luckyApr = annualized * (max / depositAmount);
+
+console.log(
+  "average claimable: ",
+  averageClaimable.toFixed(),
+  " ",
+  averageApr.toFixed(2),
+  "% APR"
+);
+// console.log("prizes dropped per player", droppedTotal / simulationRuns);
+// console.log("average first prize day: ",firstPrizeDayTotal/simulationRuns)
+// console.log("simulated ", simulationRuns, " times with a TVL of ", tvl);
+// console.dir(prizeResults, { depth: null });
+
+// more than 100 items
+// console.log(util.inspect(prizeResults, { maxArrayLength: null }))
+
+// example ascii chart
+// console.log (asciichart.plot (prizeResults,{height:30}))
+let results = {
+  average: averageApr.toFixed(2),
+  unlucky: unluckyApr.toFixed(2),
+  lucky: luckyApr.toFixed(2),
+  firstPrizeDay: firstPrizeDayTotal/simulationRuns
+};
+return results;
+}
+
 
 // simulateApy(5000,28000000,.05).then(apy => console.log("finished"))

@@ -1,8 +1,8 @@
-const tierNumPrizes = [3,48,192,768] // newly proposed
+// const tierNumPrizes = [3,48,192,768] // newly proposed
 const simulationDays = 365;
 
 
-function simulate(deposit,scalingVariable,totalPrizes,dailyProbWin,tierPrizesAfterGas) {
+function simulate(deposit,scalingVariable,totalPrizes,dailyProbWin,tierPrizesAfterGas,tierNumPrizes) {
     let prizes = [];
     for (let draw = 0; draw < Math.trunc(deposit/scalingVariable); draw++) {
         for (let tier in tierNumPrizes) {
@@ -24,6 +24,7 @@ module.exports = function calculateWinnings(
     totalPrizes,
     dailyProbWin,
     tierPrizesAfterGas,
+    tierNumPrizes,
     maxPrizes
     ) {
     let claimableWinnings = 0;
@@ -32,7 +33,7 @@ module.exports = function calculateWinnings(
     let droppedPrizes = 0 
 
     for (let days = 0; days < simulateDays; days++) {
-        let dayResult = simulate(deposit,scalingVariable,totalPrizes,dailyProbWin,tierPrizesAfterGas);
+        let dayResult = simulate(deposit,scalingVariable,totalPrizes,dailyProbWin,tierPrizesAfterGas,tierNumPrizes);
         if (dayResult[0] > 0 && firstPrizeDay === 0 ) {firstPrizeDay = days}
         totalWinnings += dayResult.reduce((partial_sum, a) => partial_sum + a, 0);
         claimableWinnings += dayResult

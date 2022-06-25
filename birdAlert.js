@@ -15,6 +15,9 @@ var emoji = require("./functions/emoji.js");
 
 dotenv.config();
 
+// user to receive notifiation that alerts have completed
+const userReportsId = '662117180158246926'
+
 const client = new Discord.Client({
   partials: ["CHANNEL"],
   intents: ["GUILDS", "GUILD_MESSAGES", "DIRECT_MESSAGES"],
@@ -42,7 +45,7 @@ async function getCurrentDraw() {
   console.log("current draw ", draws);
 
   // hardcode draw# - prob need to change lastAlertedDraw.txt
-  //   draws = "153"
+//  draws = "193"
 
   return draws;
 }
@@ -56,6 +59,24 @@ const cn = {
 };
 const db = pgp(cn);
 
+async function processCompleteDiscordNotify (drawId,dbLength) {
+  drawId = parseInt(drawId);
+  try{
+    let drawFetch = await fetch(
+      "https://poolexplorer.xyz/draw" + drawId
+    );
+    let drawResult = await drawFetch.json();
+
+  client.users.fetch(userReportsId, false).then((user) => {
+    message = "DB processed length " + dbLength + "\n" +
+    "Draw results length " + drawResult.length
+    user.send(message).catch(err => console.log(err));
+  })
+}catch(error){console.log(error);client.users.fetch(userReportsId, false).then((user) => {
+  
+  user.send(error).catch(err => console.log(err));
+})}
+}
 
 async function prizes(discord, address, draw) {
   const tempBlacklist =[]
@@ -254,7 +275,7 @@ async function isNewDraw(draw) {
 async function tellUser(user, message) {
   try {
     client.users.fetch(user, false).then((user) => {
-      console.log("USER: ",user)
+     // console.log("USER: ",user)
       user.send(message).catch(err => console.log(err));
       console.log(message)
     });
@@ -272,11 +293,14 @@ async function go() {
   let query = "SELECT DISCORD,WALLET from addresses";
   let queryRun = await db.any(query);
 
+  let dbLength = queryRun.length
 
   queryRun.forEach((player) => {
       prizes(player.discord, player.wallet, drawId);
-
   });
+  
+  processCompleteDiscordNotify(drawId,dbLength)
+  console.log("finished");
   client.login(process.env.BOT_KEY);
 }else{console.log("not a new draw posted")}
 }
