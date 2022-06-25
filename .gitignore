@@ -1,3 +1,4 @@
 .env
 birdcall.sql
 node_modules/
+.well-known/*
