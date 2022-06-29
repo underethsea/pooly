@@ -1,59 +1,59 @@
 const ethers = require("ethers");
-const { ABI } = require("./constants/abi.js")
-const { ADDRESS } = require("./constants/address.js");
+const { ABI } = require("./abi.js")
+const { ADDRESS } = require("./address.js");
+const { PROVIDERS } = require("./providers.js")
 
+const CONTRACTS = {
+    TICKET: {
+        POLYGON: new ethers.Contract(
+            ADDRESS.POLYGON.TICKET,
+            ABI.TICKET,
+            PROVIDERS.POLYGON), AVALANCHE: new ethers.Contract(
+                ADDRESS.AVALANCHE.TICKET,
+                ABI.TICKET,
+                PROVIDERS.AVALANCHE
+            ),
+        ETHEREUM: new ethers.Contract(
+            ADDRESS.ETHEREUM.TICKET,
+            ABI.TICKET,
+            PROVIDERS.ETHEREUM
+        )
+    }, AAVE: {
+        POLYGON: new ethers.Contract(
+            ADDRESS.POLYGON.AAVETOKEN,
+            ABI.AAVE,
+            PROVIDERS.POLYGON
+        ), AVALANCHE: new ethers.Contract(
+            ADDRESS.AVALANCHE.AAVETOKEN,
+            ABI.AAVE,
+            PROVIDERS.AVALANCHE
+        ), ETHEREUM: new ethers.Contract(
+            ADDRESS.ETHEREUM.AAVETOKEN,
+            ABI.AAVE,
+            PROVIDERS.ETHEREUM
+        )
+    }, AAVEINCENTIVES: {
+        POLYGON:
+            new ethers.Contract(
+                ADDRESS.POLYGON.AAVEINCENTIVES,
+                ABI.AAVEINCENTIVES,
+                PROVIDERS.POLYGON
+            ), ETHEREUM: new ethers.Contract(
+                ADDRESS.ETHEREUM.AAVEINCENTIVES,
+                ABI.AAVEINCENTIVES,
+                PROVIDERS.ETHEREUM
+            ), AVALANCHE: new ethers.Contract(
+                ADDRESS.AVALANCHE.AAVEINCENTIVES,
+                ABI.AAVEINCENTIVES,
+                PROVIDERS.AVALANCHE
+            )
+    }, PRIZETIER: {
+        ETHEREUM: new ethers.Contract(
+            ADDRESS.ETHEREUM.PRIZETIER,
+            ABI.PRIZETIER,
+            PROVIDERS.ETHEREUM
+        )
+    }
+}
 
-const polygonTicketContract = new ethers.Contract(
-    ADDRESS.POLYGON.TICKET,
-    ABI.TICKET,
-    polygonProvider
-);
-
-const avalancheTicketContract = new ethers.Contract(
-    ADDRESS.AVALANCHE.TICKET,
-    ABI.TICKET,
-    avalancheProvider
-);
-const ethereumTicketContract = new ethers.Contract(
-    ADDRESS.ETHEREUM.TICKET,
-    ABI.TICKET,
-    ethereumProvider
-);
-
-const polygonAaveContract = new ethers.Contract(
-    ADDRESS.POLYGON.AAVETOKEN,
-    ABI.AAVE,
-    polygonProvider
-);
-const avalancheAaveContract = new ethers.Contract(
-    ADDRESS.AVALANCHE.AAVETOKEN,
-    ABI.AAVE,
-    avalancheProvider
-);
-const ethereumAaveContract = new ethers.Contract(
-    ADDRESS.ETHEREUM.AAVETOKEN,
-    ABI.AAVE,
-    ethereumProvider
-);
-
-const polygonAaveIncentivesContract = new ethers.Contract(
-    ADDRESS.POLYGON.AAVEINCENTIVES,
-    ABI.AAVEINCENTIVES,
-    polygonProvider
-);
-const avalancheAaveIncentivesContract = new ethers.Contract(
-    ADDRESS.AVALANCHE.AAVEINCENTIVES,
-    ABI.AAVEINCENTIVES,
-    avalancheProvider
-);
-const ethereumAaveIncentivesContract = new ethers.Contract(
-    ADDRESS.ETHEREUM.AAVEINCENTIVES,
-    ABI.AAVEINCENTIVES,
-    ethereumProvider
-);
-
-const prizeTierContract = new ethers.Contract(
-    ADDRESS.ETHEREUM.PRIZETIER,
-    ABI.PRIZETIER,
-    ethereumProvider
-);
+module.exports = { CONTRACTS }

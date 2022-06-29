@@ -10,8 +10,8 @@ const fetch = require("cross-fetch");
 const { ADDRESS } = require("./constants/address.js");
 const { ABI } = require("./constants/abi.js")
 const { FILTERS } = require("./constants/filters.js")
-const { PROVIDERS } = require("./constants/providersjs")
-
+const { PROVIDERS } = require("./constants/providers.js")
+const { CONTRACTS } = require("./constants/contracts.js")
 const Discord = require("discord.js");
 const { DISCORDID } = require("./constants/discordId.js")
 const { MessageEmbed } = require("discord.js");
@@ -184,13 +184,13 @@ async function gas(chain) {
 async function delegatedBalance(address, network) {
   try {
     if (network === 1) {
-      contract = ethereumTicketContract;
+      contract = CONTRACTS.TICKET.ETHEREUM;
     }
     if (network === 3) {
-      contract = polygonTicketContract;
+      contract = CONTRACTS.TICKET.POLYGON;
     }
     if (network === 4) {
-      contract = avalancheTicketContract;
+      contract = CONTRACTS.TICKET.AVALANCHE;
     }
     let nowTime = parseInt(Date.now() / 1000);
     let balance = await contract.getBalanceAt(address, nowTime);
@@ -281,13 +281,13 @@ async function aaveRewards() {
     ethereumAaveIncentivesBalance,
     geckoPriceFetch,
   ] = await Promise.all([
-    polygonAaveIncentivesContract.getUserUnclaimedRewards(
+    CONTRACTS.AAVEINCENTIVES.POLYGON.getUserUnclaimedRewards(
       ADDRESS.POLYGON.YIELDSOURCE
     ),
-    avalancheAaveIncentivesContract.getUserUnclaimedRewards(
+    CONTRACTS.AAVEINCENTIVES.AVALANCHE.getUserUnclaimedRewards(
       ADDRESS.AVALANCHE.YIELDSOURCE
     ),
-    ethereumAaveIncentivesContract.getUserUnclaimedRewards(
+    CONTRACTS.AAVEINCENTIVES.ETHEREUM.getUserUnclaimedRewards(
       ADDRESS.ETHEREUM.YIELDSOURCE
     ),
     fetch(geckoPrice),
@@ -329,8 +329,8 @@ async function apr() {
 }
 async function prizePerDay() {
   try {
-    let newestDrawId = await prizeTierContract.getNewestDrawId();
-    let prizeTier = await prizeTierContract.getPrizeTier(newestDrawId);
+    let newestDrawId = await CONTRACTS.PRIZETIER.ETHEREUM.getNewestDrawId();
+    let prizeTier = await CONTRACTS.PRIZETIER.ETHEREUM.getPrizeTier(newestDrawId);
     let prizePerDayNow = parseFloat(prizeTier[5]) / 1e6;
     return prizePerDayNow;
   } catch (error) {
@@ -341,9 +341,9 @@ async function tvlActive() {
   let timeNow = parseInt(Date.now() / 1000);
   let [polygonGetTotalSupply, avalancheGetTotalSupply, ethereumGetTotalSupply] =
     await Promise.all([
-      polygonTicketContract.getTotalSupplyAt(timeNow),
-      avalancheTicketContract.getTotalSupplyAt(timeNow),
-      ethereumTicketContract.getTotalSupplyAt(timeNow),
+      CONTRACTS.TICKET.POLYGON.getTotalSupplyAt(timeNow),
+      CONTRACTS.TICKET.AVALANCHE.getTotalSupplyAt(timeNow),
+      CONTRACTS.TICKET.ETHEREUM.getTotalSupplyAt(timeNow),
     ]);
   console.log(polygonGetTotalSupply, avalancheGetTotalSupply, "eth", ethereumGetTotalSupply)
   let tvlActiveTotal =
@@ -396,12 +396,12 @@ async function flushable() {
     avalancheAaveBalance,
     ethereumAaveBalance,
   ] = await Promise.all([
-    polygonTicketContract.totalSupply(),
-    avalancheTicketContract.totalSupply(),
-    ethereumTicketContract.totalSupply(),
-    polygonAaveContract.balanceOf(ADDRESS.POLYGON.YIELDSOURCE),
-    avalancheAaveContract.balanceOf(ADDRESS.AVALANCHE.YIELDSOURCE),
-    ethereumAaveContract.balanceOf(ADDRESS.ETHEREUM.YIELDSOURCE),
+    CONTRACTS.TICKET.POLYGON.totalSupply(),
+    CONTRACTS.TICKET.AVALANCHE.totalSupply(),
+    CONTRACTS.TICKET.ETHEREUM.totalSupply(),
+    CONTRACTS.AAVE.POLYGON.balanceOf(ADDRESS.POLYGON.YIELDSOURCE),
+    CONTRACTS.AAVE.AVALANCHE.balanceOf(ADDRESS.AVALANCHE.YIELDSOURCE),
+    CONTRACTS.AAVE.ETHEREUM.balanceOf(ADDRESS.ETHEREUM.YIELDSOURCE),
   ]);
   polygonTotalSupply = usdc(polygonTotalSupply);
   avalancheTotalSupply = usdc(avalancheTotalSupply);
@@ -485,26 +485,26 @@ async function player(address) {
       averageBalanceEthereum,
       playerData,
     ] = await Promise.all([
-      polygonTicketContract.balanceOf(address),
-      avalancheTicketContract.balanceOf(address),
-      polygonTicketContract.getAverageBalanceBetween(
+      CONTRACTS.TICKET.POLYGON.balanceOf(address),
+      CONTRACTS.TICKET.AVALANCHE.balanceOf(address),
+      CONTRACTS.TICKET.POLYGON.getAverageBalanceBetween(
         address,
         ticketStartTimestamp,
         currentTimestamp
       ),
-      avalancheTicketContract.getAverageBalanceBetween(
+      CONTRACTS.TICKET.AVALANCHE.getAverageBalanceBetween(
         address,
         avaxTicketStartTimestamp,
         currentTimestamp
       ),
-      ethereumTicketContract.getAverageBalanceBetween(
+      CONTRACTS.TICKET.ETHEREUM.getAverageBalanceBetween(
         address,
         ticketStartTimestamp,
         currentTimestamp
       ),
       fetch(url),
     ]);
-    let balanceEthereum = await ethereumTicketContract.balanceOf(address);
+    let balanceEthereum = await CONTRACTS.TICKET.ETHEREUM.balanceOf(address);
     let polygonDelegatedBalance = await delegatedBalance(address, 3);
 
     // console.log("balance ",balance)
@@ -725,9 +725,9 @@ async function liquidity() {
     console.log("liquidity function");
     let [polygonLiquidity, avalancheLiquidity, ethereumLiquidity] =
       await Promise.all([
-        polygonTicketContract.balanceOf(ADDRESS.POLYGON.LIQUIDITY),
-        avalancheTicketContract.balanceOf(ADDRESS.AVALANCHE.LIQUIDITY),
-        ethereumTicketContract.balanceOf(ADDRESS.ETHEREUM.LIQUIDITY),
+        CONTRACTS.TICKET.POLYGON.balanceOf(ADDRESS.POLYGON.LIQUIDITY),
+        CONTRACTS.TICKET.AVALANCHE.balanceOf(ADDRESS.AVALANCHE.LIQUIDITY),
+        CONTRACTS.TICKET.ETHEREUM.balanceOf(ADDRESS.ETHEREUM.LIQUIDITY),
       ]);
     let liquidityData = {
       polygon: polygonLiquidity,
@@ -1043,7 +1043,7 @@ async function go() {
   client.once("ready", () => {
     console.log("Ready!");
   });
-  PROVIDER.POLYGON.on(FIILTERS.POLYGON.DEPOSIT, (depositEvent) => {
+  PROVIDERS.POLYGON.on(FILTERS.DEPOSIT.POLYGON, (depositEvent) => {
     let amount = ethers.utils.defaultAbiCoder.decode(
       ["uint256"],
       depositEvent.data
@@ -1079,7 +1079,7 @@ async function go() {
         .send({ embeds: [depositEmbed] });
     }
   });
-  PROVIDER.POLYGON.on(FILTERS.POLYGON.WITHDRAW, (withdrawEvent) => {
+  PROVIDERS.POLYGON.on(FILTERS.WITHDRAW.POLYGON, (withdrawEvent) => {
     // console.log("withdraw: ",withdrawEvent)
     // console.log("data",withdrawEvent.data)
     let amounts = ethers.utils.defaultAbiCoder.decode(
@@ -1126,8 +1126,8 @@ async function go() {
     try {
       let url = "https://poolexplorer.xyz/player?address=" + address;
       let [balance, averageBalance, playerData] = await Promise.all([
-        polygonTicketContract.balanceOf(address),
-        polygonTicketContract.getAverageBalanceBetween(
+        CONTRACTS.TICKET.POLYGON.balanceOf(address),
+        CONTRACTS.TICKET.POLYGON.getAverageBalanceBetween(
           address,
           ticketStartTimestamp,
           currentTimestamp
@@ -1171,7 +1171,7 @@ async function go() {
     return withdrawString;
   }
 
-  PROVIDER.AVALANCHE.on(FILTERS.AVALANCHE.DEPOSIT, (depositEvent) => {
+  PROVIDERS.AVALANCHE.on(FILTERS.DEPOSIT.AVALANCHE, (depositEvent) => {
     let amount = ethers.utils.defaultAbiCoder.decode(
       ["uint256"],
       depositEvent.data
@@ -1207,7 +1207,7 @@ async function go() {
         .send({ embeds: [depositEmbed] });
     }
   });
-  PROVIDER.AVALANCHE.on(FILTERS.AVALANCHE.WITHDRAW, (withdrawEvent) => {
+  PROVIDERS.AVALANCHE.on(FILTERS.WITHDRAW.AVALANCHE, (withdrawEvent) => {
     // console.log("withdraw: ",withdrawEvent)
     // console.log("data",withdrawEvent.data)
     let amounts = ethers.utils.defaultAbiCoder.decode(
@@ -1254,8 +1254,8 @@ async function go() {
     try {
       let url = "https://poolexplorer.xyz/player?address=" + address;
       let [balance, averageBalance, playerData] = await Promise.all([
-        polygonTicketContract.balanceOf(address),
-        polygonTicketContract.getAverageBalanceBetween(
+        CONTRACTS.TICKET.POLYGON.balanceOf(address),
+        CONTRACTS.TICKET.POLYGON.getAverageBalanceBetween(
           address,
           ticketStartTimestamp,
           currentTimestamp
@@ -1300,7 +1300,7 @@ async function go() {
   }
 
   // Login to Discord with your client's token
-  PROVIDER.POLYGON.on(FILTERS.POLYGON.CLAIM, (claimEvent) => {
+  PROVIDERS.POLYGON.on(FILTERS.CLAIM.POLYGON, (claimEvent) => {
     //  console.log(claimEvent.transactionHash)
     let txHash = claimEvent.transactionHash;
     let polygonScanUrl = "https://polygonscan.com/tx/";
@@ -1328,7 +1328,7 @@ async function go() {
 
     client.channels.cache.get(DISCORDID.PT.CLAIMS).send({ embeds: [claimEmbed] });
   });
-  PROVIDER.AVALANCHE.on(FILTERS.AVALANCHE.CLAIM, (claimEvent) => {
+  PROVIDERS.AVALANCHE.on(FILTERS.CLAIM.AVALANCHE, (claimEvent) => {
     //  console.log(claimEvent.transactionHash)
     let txHash = claimEvent.transactionHash;
     let polygonScanUrl = "https://snowtrace.io/tx/";

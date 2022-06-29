@@ -45,7 +45,7 @@ async function getCurrentDraw() {
   console.log("current draw ", draws);
 
   // hardcode draw# - prob need to change lastAlertedDraw.txt
-//  draws = "193"
+//  draws = "255"
 
   return draws;
 }

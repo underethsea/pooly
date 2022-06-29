@@ -27,7 +27,7 @@ const cn = {
       return {};
     }
   }
-  module.exports = async function RemoveWallet(discord, wallet) {
+  async function RemoveWallet(discord, wallet) {
     try {
       let queryAddWallet =
         "DELETE FROM addresses WHERE DISCORD='" +
@@ -44,20 +44,22 @@ const cn = {
     }
   }
   
-  exports.module = async function AddWallet(discord, wallet) {
+ async function AddWallet(discord, wallet) {
     try {
       let user = await getUser(discord);
       if (user.length > 4) {
         return "You have hit the maximum of 5 wallets";
       }
-      let polygonDelegatedBalance = await delegatedBalance(wallet, 3)
+/*      let polygonDelegatedBalance = await delegatedBalance(wallet, 3)
       let avalancheDelegatedBalance = await delegatedBalance(wallet, 4)
       let ethereumDelegatedBalance = await delegatedBalance(wallet, 1)
       polygonDelegatedBalance = parseFloat(polygonDelegatedBalance)
       avalancheDelegatedBalance = parseFloat(avalancheDelegatedBalance)
       ethereumDelegatedBalance = parseFloat(ethereumDelegatedBalance)
       let totalBalance = polygonDelegatedBalance + avalancheDelegatedBalance + ethereumDelegatedBalance
-      if (totalBalance > 3) {
+*/
+let totalBalance = 4  
+    if (totalBalance > 3) {
         let queryAddWallet =
           "INSERT INTO addresses(DISCORD,WALLET) values('" +
           discord +
@@ -73,7 +75,7 @@ const cn = {
       return "Could not add wallet friend, sorry!";
     }
   }
-  exports.module = async function PlayerWallets(discord) {
+  async function PlayerWallets(discord) {
     try {
       let playerWalletsQuery =
         "SELECT DISCORD,WALLET from addresses WHERE DISCORD ='" + discord + "';";
@@ -95,3 +97,6 @@ const cn = {
       return "Could not find any wallets. try `=add <wallet address>`";
     }
   }
+module.exports.PlayerWallets = PlayerWallets
+module.exports.AddWallet = AddWallet
+module.exports.RemoveWallet = RemoveWallet

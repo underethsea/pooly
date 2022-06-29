@@ -1,5 +1,6 @@
 
 const dotenv = require("dotenv");
+const ethers = require("ethers");
 dotenv.config();
 
 
@@ -21,4 +22,4 @@ const PROVIDERS = {
     OPTIMISM: new ethers.providers.JsonRpcProvider(optimismEndpoint)
 }
 
-modules.export = { PROVIDERS }
+module.exports = { PROVIDERS }
