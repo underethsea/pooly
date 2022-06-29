@@ -24,6 +24,12 @@ var calculateWinnings = require("./functions/simulate.js");
 const { GetLp } = require("./protocolOwnedLiquidity.js")
 const { AddWallet, RemoveWallet, PlayerWallets } = require("./birdCall.js")
 
+const { Usdc } = require("./functions/usdc.js")
+const { Commas } = require("./functions/commas.js")
+const { Gas } = require("./functions/gas.js")
+const { Flushable } = require("./functions.flushable.js")
+
+
 
 async function winners(draw) {
   let drawId = parseInt(draw)
@@ -118,16 +124,6 @@ async function prizes(address, draw) {
   }
 }
 
-const discordEmbed = (title, description) => {
-  try {
-    let titleString = title.toString()
-    const newEmbed = new MessageEmbed()
-      .setColor("#9B59B6")
-      .setTitle(titleString)
-      .setDescription(description);
-    return newEmbed
-  } catch (error) { console.log("discord embed error for title" + title + "\n" + error) }
-}
 
 const commas = (number) => {
   let fixed = number.toFixed();
@@ -136,51 +132,6 @@ const commas = (number) => {
 const usdc = (amount) => {
   return amount / 1e6;
 };
-async function gas(chain) {
-  if (chain === "137" || chain === "poly" || chain === "polygon") {
-    let polyScanGas = await fetch(
-      "https://api.polygonscan.com/api?module=gastracker&action=gasoracle&apikey=" +
-      process.env.POLYGONSCAN_KEY
-    );
-    polyScanGas = await polyScanGas.json();
-    let gas = {
-      safe: polyScanGas.result.SafeGasPrice,
-      propose: polyScanGas.result.ProposeGasPrice,
-      fast: polyScanGas.result.FastGasPrice,
-      price: polyScanGas.result.UsdPrice,
-    };
-    return (
-      "POLY GAS ||    " +
-      gas.safe +
-      " / " +
-      gas.propose +
-      " / " +
-      gas.fast +
-      "    MATIC PRICE: " +
-      gas.price
-    );
-  } else if (
-    chain === "1" ||
-    chain === "main" ||
-    chain === "eth" ||
-    chain === "ethereum"
-  ) {
-    let polyScanGas = await fetch(
-      "https://api.etherscan.io/api?module=gastracker&action=gasoracle&apikey=" +
-      process.env.ETHERSCAN_KEY
-    );
-    polyScanGas = await polyScanGas.json();
-    let gas = {
-      safe: polyScanGas.result.SafeGasPrice,
-      propose: polyScanGas.result.ProposeGasPrice,
-      fast: polyScanGas.result.FastGasPrice,
-    };
-    return "ETH GAS ||    " + gas.safe + " / " + gas.propose + " / " + gas.fast;
-  }
-  {
-    return "Chain ID not setup";
-  }
-}
 async function delegatedBalance(address, network) {
   try {
     if (network === 1) {
@@ -220,18 +171,18 @@ async function ukraine() {
     let ukraineString = "UKRAINE || ";
     if (polygonBalance > 0) {
       ukraineString +=
-        "    POLY: " + emoji("usdc") + " " + commas(parseFloat(polygonBalance));
+        "    POLY: " + emoji("usdc") + " " + Commas(parseFloat(polygonBalance));
     }
     if (avalancheBalance > 0) {
       ukraineString +=
         "    AVAX: " +
         emoji("usdc") +
         " " +
-        commas(parseFloat(avalancheBalance));
+        Commas(parseFloat(avalancheBalance));
     }
     if (ethereumBalance > 0) {
       ukraineString +=
-        "    ETH: " + emoji("usdc") + " " + commas(parseFloat(ethereumBalance));
+        "    ETH: " + emoji("usdc") + " " + Commas(parseFloat(ethereumBalance));
     }
     return ukraineString;
   } catch (error) {
@@ -263,13 +214,13 @@ async function depositors() {
   let totalDepositors = polyCount + avaxCount + ethCount;
   return (
     "Depositors ||    TOTAL: " +
-    commas(totalDepositors) +
+    Commas(totalDepositors) +
     "    POLY: " +
-    commas(polyCount) +
+    Commas(polyCount) +
     "    AVAX: " +
-    commas(avaxCount) +
+    Commas(avaxCount) +
     "    ETH: " +
-    commas(ethCount)
+    Commas(ethCount)
   );
 }
 async function aaveRewards() {
@@ -371,59 +322,21 @@ async function tvl() {
   let total = polygonAaveBalance + avalancheAaveBalance + ethereumAaveBalance;
   let tvl = new MessageEmbed()
     .setColor("#0099ff")
-    .setTitle(" V4 TVL Total " + emoji("usdc") + " " + commas(total))
+    .setTitle(" V4 TVL Total " + emoji("usdc") + " " + Commas(total))
     .setDescription(
       emoji("polygon") +
       " Polygon " +
-      commas(polygonAaveBalance) +
+      Commas(polygonAaveBalance) +
       "\n" +
       emoji("ethereum") +
       " Ethereum " +
-      commas(ethereumAaveBalance) +
+      Commas(ethereumAaveBalance) +
       "\n" +
       emoji("avalanche") +
       " Avalanche " +
-      commas(avalancheAaveBalance)
+      Commas(avalancheAaveBalance)
     );
   return tvl;
-}
-async function flushable() {
-  let [
-    polygonTotalSupply,
-    avalancheTotalSupply,
-    ethereumTotalSupply,
-    polygonAaveBalance,
-    avalancheAaveBalance,
-    ethereumAaveBalance,
-  ] = await Promise.all([
-    CONTRACTS.TICKET.POLYGON.totalSupply(),
-    CONTRACTS.TICKET.AVALANCHE.totalSupply(),
-    CONTRACTS.TICKET.ETHEREUM.totalSupply(),
-    CONTRACTS.AAVE.POLYGON.balanceOf(ADDRESS.POLYGON.YIELDSOURCE),
-    CONTRACTS.AAVE.AVALANCHE.balanceOf(ADDRESS.AVALANCHE.YIELDSOURCE),
-    CONTRACTS.AAVE.ETHEREUM.balanceOf(ADDRESS.ETHEREUM.YIELDSOURCE),
-  ]);
-  polygonTotalSupply = usdc(polygonTotalSupply);
-  avalancheTotalSupply = usdc(avalancheTotalSupply);
-  ethereumTotalSupply = usdc(ethereumTotalSupply);
-
-  polygonAaveBalance = usdc(polygonAaveBalance);
-  avalancheAaveBalance = usdc(avalancheAaveBalance);
-  ethereumAaveBalance = usdc(ethereumAaveBalance);
-  // console.log(ethereumTotalSupply);
-  // console.log(ethereumAaveBalance);
-
-  let polygonFlushable = polygonAaveBalance - polygonTotalSupply;
-  let avalancheFlushable = avalancheAaveBalance - avalancheTotalSupply;
-  let ethereumFlushable = ethereumAaveBalance - ethereumTotalSupply;
-
-  let flushable = discordEmbed(
-    "Flushable Yield",
-    emoji("polygon") + " `" + commas(polygonFlushable) + "`\n" +
-    emoji("avalanche") + " `" + commas(avalancheFlushable) + "`\n" +
-    emoji("ethereum") + " `" + commas(ethereumFlushable) + "`"
-  )
-  return flushable;
 }
 const oddsNumber = (amount) => {
   if (amount >= 100) {
@@ -551,11 +464,11 @@ async function player(address) {
           "\nWon " +
           emoji("usdc") +
           " " +
-          commas(totalClaimable) +
+          Commas(totalClaimable) +
           "    => " +
           apr +
           "% APR";
-        // nAverage Balance " + emoji("usdc") + " \ \ " + commas(averageBalance)
+        // nAverage Balance " + emoji("usdc") + " \ \ " + Commas(averageBalance)
       }
     }
     // console.log("baLANCE REMAINING: ",balanceRemaining)
@@ -563,14 +476,14 @@ async function player(address) {
 
     if (balanceRemaining > 1) {
       withdrawString +=
-        "\n Tickets Held" + emoji("usdc") + " " + commas(balanceRemaining);
+        "\n Tickets Held" + emoji("usdc") + " " + Commas(balanceRemaining);
     }
     if (polygonDelegatedBalance > balanceRemaining) {
       withdrawString +=
         "\n Tickets + Delegation " +
         emoji("usdc") +
         " " +
-        commas(parseFloat(polygonDelegatedBalance));
+        Commas(parseFloat(polygonDelegatedBalance));
     }
 
     playerDataAvalanche = playerData.filter(function (entry) {
@@ -620,11 +533,11 @@ async function player(address) {
           "\nWon " +
           emoji("usdc") +
           " " +
-          commas(totalClaimable) +
+          Commas(totalClaimable) +
           "    => " +
           aprAvax +
           "% APR";
-        // Average Balance " + emoji("usdc") + " \ \ " + commas(averageBalanceAvalanche)
+        // Average Balance " + emoji("usdc") + " \ \ " + Commas(averageBalanceAvalanche)
       }
     }
 
@@ -633,14 +546,14 @@ async function player(address) {
         "\n Tickets Held " +
         emoji("usdc") +
         " " +
-        commas(balanceRemainingAvalanche);
+        Commas(balanceRemainingAvalanche);
     }
     if (avalancheDelegatedBalance > balanceRemainingAvalanche) {
       withdrawString +=
         "\nTickets + Delegation " +
         emoji("usdc") +
         " " +
-        commas(parseFloat(avalancheDelegatedBalance));
+        Commas(parseFloat(avalancheDelegatedBalance));
     }
 
     playerDataEthereum = playerData.filter(function (entry) {
@@ -690,13 +603,13 @@ async function player(address) {
           "\nWon " +
           emoji("usdc") +
           " " +
-          commas(totalClaimable) +
+          Commas(totalClaimable) +
           "    => " +
           apr +
           "% APR\nAverage Balance " +
           emoji("usdc") +
           "   " +
-          commas(averageBalanceEthereum);
+          Commas(averageBalanceEthereum);
       }
     }
 
@@ -705,14 +618,14 @@ async function player(address) {
         "\n Current Balance " +
         emoji("usdc") +
         " " +
-        commas(balanceRemainingEthereum);
+        Commas(balanceRemainingEthereum);
     }
     if (delegatedBalanceEthereum > balanceRemainingEthereum) {
       withdrawString +=
         "\nDelegated Balance " +
         emoji("usdc") +
         " " +
-        commas(parseFloat(delegatedBalanceEthereum));
+        Commas(parseFloat(delegatedBalanceEthereum));
     }
   } catch (error) {
     console.log(error);
@@ -1071,7 +984,7 @@ async function go() {
           " Deposit    " +
           emoji("usdc") +
           " " +
-          commas(amount)
+          Commas(amount)
         )
         .setDescription(depositString);
       client.channels.cache
@@ -1102,7 +1015,7 @@ async function go() {
             " Withdraw    " +
             emoji("usdc") +
             " " +
-            commas(amount)
+            Commas(amount)
           )
           .setDescription(withdrawString);
 
@@ -1199,7 +1112,7 @@ async function go() {
           " Deposit    " +
           emoji("usdc") +
           " " +
-          commas(amount)
+          Commas(amount)
         )
         .setDescription(depositString);
       client.channels.cache
@@ -1230,7 +1143,7 @@ async function go() {
             " Withdraw    " +
             emoji("usdc") +
             " " +
-            commas(amount)
+            Commas(amount)
           )
           .setDescription(withdrawString);
 
@@ -1322,7 +1235,7 @@ async function go() {
         " Prize Claim    " +
         emoji("usdc") +
         " " +
-        commas(claimAmount)
+        Commas(claimAmount)
       )
       .setDescription(claimString);
 
@@ -1350,7 +1263,7 @@ async function go() {
         " Prize Claim    " +
         emoji("usdc") +
         " " +
-        commas(claimAmount)
+        Commas(claimAmount)
       )
       .setDescription(claimString);
 
@@ -1491,7 +1404,7 @@ async function go() {
           address = prizeQuery[1];
           delegatedBalance(address).then((playerText) => {
             message.reply(
-              "BALANCE: " + emoji("usdc") + " " + commas(parseFloat(playerText))
+              "BALANCE: " + emoji("usdc") + " " + Commas(parseFloat(playerText))
             );
           });
         }
@@ -1501,7 +1414,7 @@ async function go() {
           odds(amount).then((oddsText) => {
             const oddsEmbed = new MessageEmbed()
               .setColor("#0099ff")
-              .setTitle("Daily Odds with " + emoji("usdc") + " " + commas(parseFloat(amount)))
+              .setTitle("Daily Odds with " + emoji("usdc") + " " + Commas(parseFloat(amount)))
               .setDescription(oddsText);
             message.reply({ embeds: [oddsEmbed] });
           });
@@ -1565,12 +1478,12 @@ async function go() {
         if (message.content === "=liquidity") {
           liquidity().then((liquidityData) => {
             let liquidityString = emoji("polygon") + " `" +
-              commas(usdc(liquidityData.polygon)) +
+              Commas(usdc(liquidityData.polygon)) +
               "`\n" + emoji("ethereum") + " `" +
-              commas(usdc(liquidityData.ethereum)) +
+              Commas(usdc(liquidityData.ethereum)) +
               "`\n" + emoji("avalanche") + " `" +
 
-              commas(usdc(liquidityData.avalanche)) + "`";
+              Commas(usdc(liquidityData.avalanche)) + "`";
             const liquidityEmbed = new MessageEmbed()
               .setColor("#0099ff")
               .setTitle("Prize Liquidity")
@@ -1590,7 +1503,7 @@ async function go() {
             simulateApy(amount, 30000000, 0.05).then((apyText) => {
               let simulateText =
                 "<:TokenUSDC:823404729634652220> DEPOSIT `" +
-                commas(parseFloat(amount)) +
+                Commas(parseFloat(amount)) +
                 "`\n:calendar_spiral: APR Range `" +
                 apyText.unlucky +
                 "% - " +
@@ -1616,7 +1529,7 @@ async function go() {
         //     optionA(amount, 30000000, 0.05).then((apyText) => {
         //       let simulateText =
         //         "<:TokenUSDC:823404729634652220> DEPOSIT `" +
-        //         commas(parseFloat(amount)) +
+        //         Commas(parseFloat(amount)) +
         //         "`\n:calendar_spiral: APR Range `" +
         //         apyText.unlucky +
         //         "% - " +
@@ -1647,7 +1560,7 @@ async function go() {
         //     optionB(amount, 30000000, 0.05).then((apyText) => {
         //       let simulateText =
         //         "<:TokenUSDC:823404729634652220> DEPOSIT `" +
-        //         commas(parseFloat(amount)) +
+        //         Commas(parseFloat(amount)) +
         //         "`\n:calendar_spiral: APR Range `" +
         //         apyText.unlucky +
         //         "% - " +
@@ -1712,7 +1625,7 @@ async function go() {
             const aprEmbed = new MessageEmbed()
               .setColor("#0099ff")
               .setTitle("Current Prize APR")
-              .setDescription(":trophy: `" + aprText.apr.toFixed(2) + "%`\n" + "TVL `" + commas(aprText.tvl) + "`\n" + "Annual prize `" + commas(aprText.prizePerYear) + "`");
+              .setDescription(":trophy: `" + aprText.apr.toFixed(2) + "%`\n" + "TVL `" + Commas(aprText.tvl) + "`\n" + "Annual prize `" + Commas(aprText.prizePerYear) + "`");
             message.channel.send({ embeds: [aprEmbed] });
           });
         }
@@ -1727,20 +1640,20 @@ async function go() {
                 " V4 TVL Active Total " +
                 emoji("usdc") +
                 " " +
-                commas(tvlActiveAmt.total)
+                Commas(tvlActiveAmt.total)
               )
               .setDescription(
                 emoji("polygon") +
                 " Polygon " +
-                commas(tvlActiveAmt.polygon) +
+                Commas(tvlActiveAmt.polygon) +
                 "\n" +
                 emoji("ethereum") +
                 " Ethereum " +
-                commas(tvlActiveAmt.ethereum) +
+                Commas(tvlActiveAmt.ethereum) +
                 "\n" +
                 emoji("avalanche") +
                 " Avalanche " +
-                commas(tvlActiveAmt.avalanche)
+                Commas(tvlActiveAmt.avalanche)
               );
             message.channel.send({ embeds: [tvlEmbed] });
           });
@@ -1763,14 +1676,14 @@ async function go() {
           });
         }
         if (message.content === "=flushable") {
-          flushable().then((flushableText) =>
+          Flushable().then((flushableText) =>
             message.channel.send({ embeds: [flushableText] })
           );
         }
         if (message.content.startsWith("=gas")) {
           let chain = message.content.split(" ");
           chain = chain[1];
-          gas(chain).then((gasText) => message.channel.send(gasText));
+          Gas(chain).then((gasText) => message.channel.send(gasText));
         }
         if (message.content.startsWith("=grandprize")) {
           let draw = message.content.split(" ");
@@ -1878,7 +1791,7 @@ async function go() {
           odds(amount).then((oddsText) => {
             const oddsEmbed = new MessageEmbed()
               .setColor("#0099ff")
-              .setTitle("Daily Odds with " + emoji("usdc") + " " + commas(parseFloat(amount)))
+              .setTitle("Daily Odds with " + emoji("usdc") + " " + Commas(parseFloat(amount)))
               .setDescription(oddsText);
             message.reply({ embeds: [oddsEmbed] });
           });
