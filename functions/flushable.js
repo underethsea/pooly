@@ -3,6 +3,8 @@ const { CONTRACTS } = require("../constants/contracts.js")
 const { ADDRESS } = require("../constants/address.js")
 const { Usdc } = require("./usdc.js")
 const { DiscordEmbed } = require("./discordEmbed.js")
+const { Commas } = require("./commas.js")
+const emoji = require("./emoji.js")
 async function flushable() {
     let [
       polygonTotalSupply,
@@ -19,23 +21,23 @@ async function flushable() {
       CONTRACTS.AAVE.AVALANCHE.balanceOf(ADDRESS.AVALANCHE.YIELDSOURCE),
       CONTRACTS.AAVE.ETHEREUM.balanceOf(ADDRESS.ETHEREUM.YIELDSOURCE),
     ]);
-    polygonTotalSupply = usdc(polygonTotalSupply);
-    avalancheTotalSupply = usdc(avalancheTotalSupply);
-    ethereumTotalSupply = usdc(ethereumTotalSupply);
+    polygonTotalSupply = Usdc(polygonTotalSupply);
+    avalancheTotalSupply = Usdc(avalancheTotalSupply);
+    ethereumTotalSupply = Usdc(ethereumTotalSupply);
   
-    polygonAaveBalance = usdc(polygonAaveBalance);
-    avalancheAaveBalance = usdc(avalancheAaveBalance);
-    ethereumAaveBalance = usdc(ethereumAaveBalance);
+    polygonAaveBalance = Usdc(polygonAaveBalance);
+    avalancheAaveBalance = Usdc(avalancheAaveBalance);
+    ethereumAaveBalance = Usdc(ethereumAaveBalance);
   
     let polygonFlushable = polygonAaveBalance - polygonTotalSupply;
     let avalancheFlushable = avalancheAaveBalance - avalancheTotalSupply;
     let ethereumFlushable = ethereumAaveBalance - ethereumTotalSupply;
   
-    let flushable = discordEmbed(
+    let flushable = DiscordEmbed(
       "Flushable Yield",
-      emoji("polygon") + " `" + commas(polygonFlushable) + "`\n" +
-      emoji("avalanche") + " `" + commas(avalancheFlushable) + "`\n" +
-      emoji("ethereum") + " `" + commas(ethereumFlushable) + "`"
+      emoji("polygon") + " `" + Commas(polygonFlushable) + "`\n" +
+      emoji("avalanche") + " `" + Commas(avalancheFlushable) + "`\n" +
+      emoji("ethereum") + " `" + Commas(ethereumFlushable) + "`"
     )
     return flushable;
   }

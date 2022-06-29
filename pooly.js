@@ -27,9 +27,10 @@ const { AddWallet, RemoveWallet, PlayerWallets } = require("./birdCall.js")
 const { Usdc } = require("./functions/usdc.js")
 const { Commas } = require("./functions/commas.js")
 const { Gas } = require("./functions/gas.js")
-const { Flushable } = require("./functions.flushable.js")
-
-
+const { Flushable } = require("./functions/flushable.js")
+const { Prizes } = require("./functions/prizes.js")
+const { Player } = require("./functions/player.js")
+const { AllSea, Gallery, SeaFloor } = require("./functions/nft.js")
 
 async function winners(draw) {
   let drawId = parseInt(draw)
@@ -37,91 +38,6 @@ async function winners(draw) {
   drawFetch = await drawFetch.json()
   let winnerCount = drawFetch.length
   return winnerCount.toString()
-}
-
-async function prizes(address, draw) {
-  try {
-    // console.log("address", address);
-    // console.log("draw", draw);
-    drawId = parseInt(draw);
-    let drawFetch = await fetch(
-      "https://poolexplorer.xyz/player?address=" + address
-    );
-    let drawResult = await drawFetch.json();
-    drawResult = drawResult.filter((draw) => draw.draw_id === drawId);
-    let polygonWins = {};
-    let avalancheWins = {};
-    let ethereumWins = {};
-    try {
-      polygonWins = drawResult.filter((word) => word.network === "polygon");
-      polygonWins = polygonWins[0];
-    } catch (error) {
-      console.log(error);
-    }
-    try {
-      avalancheWins = drawResult.filter((word) => word.network === "avalanche");
-      avalancheWins = avalancheWins[0];
-    } catch (error) {
-      console.log(error);
-    }
-    try {
-      ethereumWins = drawResult.filter((word) => word.network === "ethereum");
-      ethereumWins = ethereumWins[0];
-    } catch (error) {
-      console.log(error);
-    }
-    // console.log(result);
-    // console.log(result.length);
-
-    let prizeString = "PRIZES WON || `DRAW " + draw + "`  ";
-    try {
-      if (polygonWins.claimable_prizes.length === 0) {
-        return "No claimable prizes for draw " + drawId;
-      } else if (polygonWins.claimable_prizes.length === 1) {
-        prizeString += "    " + emoji(polygonWins.network);
-        prizeString += "   " + fourteenUsdc(polygonWins.claimable_prizes[0]);
-      } else {
-        prizeString += "    " + emoji(polygonWins.network);
-
-        for (doubleWin of polygonWins.claimable_prizes) {
-          prizeString += "   " + fourteenUsdc(doubleWin);
-        }
-      }
-    } catch (error) { }
-    try {
-      if (avalancheWins.claimable_prizes.length === 0) {
-        return "No claimable prizes for draw " + drawId;
-      } else if (avalancheWins.claimable_prizes.length === 1) {
-        prizeString += "    " + emoji(avalancheWins.network);
-        prizeString += "   " + fourteenUsdc(avalancheWins.claimable_prizes[0]);
-      } else {
-        prizeString += "    " + emoji(avalancheWins.network);
-
-        for (doubleWin of avalancheWins.claimable_prizes) {
-          prizeString += "   " + fourteenUsdc(doubleWin);
-        }
-      }
-    } catch (error) { }
-    try {
-      if (ethereumWins.claimable_prizes) {
-        if (ethereumWins.claimable_prizes.length === 0) {
-          return "No claimable prizes for draw " + drawId;
-        } else if (ethereumWins.claimable_prizes.length === 1) {
-          prizeString += "    " + emoji(ethereumWins.network);
-          prizeString += "   " + fourteenUsdc(ethereumWins.claimable_prizes[0]);
-        } else {
-          prizeString += "    " + emoji(ethereumWins.network);
-
-          for (doubleWin of ethereumWins.claimable_prizes) {
-            prizeString += "   " + fourteenUsdc(doubleWin);
-          }
-        }
-      }
-    } catch (error) { }
-    return prizeString;
-  } catch (error) {
-    console.log(error);
-  }
 }
 
 
@@ -376,263 +292,6 @@ async function odds(amount) {
   }
 }
 
-async function player(address) {
-  let withdrawString = "";
-  let gotOne = 0;
-  try {
-    const currentTimestamp = parseInt(Date.now() / 1000);
-    const ticketStartTimestamp = 1634184538;
-    const avaxTicketStartTimestamp = 1640043176;
-    let timeElapsed = 31536000 / (currentTimestamp - ticketStartTimestamp);
-    timeElapsed = timeElapsed * 100;
-    let timeElapsedAvax =
-      31536000 / (currentTimestamp - avaxTicketStartTimestamp);
-    timeElapsedAvax = timeElapsedAvax * 100;
-
-    let url = "https://poolexplorer.xyz/player?address=" + address;
-    let [
-      balance,
-      balanceAvalanche,
-      averageBalance,
-      averageBalanceAvalanche,
-      averageBalanceEthereum,
-      playerData,
-    ] = await Promise.all([
-      CONTRACTS.TICKET.POLYGON.balanceOf(address),
-      CONTRACTS.TICKET.AVALANCHE.balanceOf(address),
-      CONTRACTS.TICKET.POLYGON.getAverageBalanceBetween(
-        address,
-        ticketStartTimestamp,
-        currentTimestamp
-      ),
-      CONTRACTS.TICKET.AVALANCHE.getAverageBalanceBetween(
-        address,
-        avaxTicketStartTimestamp,
-        currentTimestamp
-      ),
-      CONTRACTS.TICKET.ETHEREUM.getAverageBalanceBetween(
-        address,
-        ticketStartTimestamp,
-        currentTimestamp
-      ),
-      fetch(url),
-    ]);
-    let balanceEthereum = await CONTRACTS.TICKET.ETHEREUM.balanceOf(address);
-    let polygonDelegatedBalance = await delegatedBalance(address, 3);
-
-    // console.log("balance ",balance)
-    playerData = await playerData.json();
-    playerDataPolygon = playerData.filter(function (entry) {
-      return entry.network === "polygon";
-    });
-
-    let experience = playerDataPolygon.length;
-    let balanceRemaining = parseFloat(ethers.utils.formatUnits(balance, 6));
-
-    if (experience > 0) {
-      gotOne = 1;
-      withdrawString +=
-        emoji("polygon") +
-        " Player [" +
-        address.substring(0, 10) +
-        "](" +
-        "https://polygonscan.com/address/" +
-        address +
-        ")";
-
-      withdrawString += "   XP  " + experience + " draws ";
-
-      let totalClaimable = 0;
-      for (let x of playerDataPolygon) {
-        let total = 0;
-        let prize = 0;
-
-        if (x.claimable_prizes !== null) {
-          for (let y of x.claimable_prizes) {
-            prize = y / 10000000 / 10000000;
-            total += parseFloat(prize.toFixed());
-            totalClaimable += parseFloat(prize.toFixed());
-          }
-        }
-      }
-      if (totalClaimable > 0) {
-        averageBalance = averageBalance / 1e6;
-        let apr = parseFloat(
-          (totalClaimable / averageBalance) * timeElapsed
-        ).toFixed();
-        withdrawString +=
-          "\nWon " +
-          emoji("usdc") +
-          " " +
-          Commas(totalClaimable) +
-          "    => " +
-          apr +
-          "% APR";
-        // nAverage Balance " + emoji("usdc") + " \ \ " + Commas(averageBalance)
-      }
-    }
-    // console.log("baLANCE REMAINING: ",balanceRemaining)
-    // console.log("polygon delegate balance: ",polygonDelegatedBalance)
-
-    if (balanceRemaining > 1) {
-      withdrawString +=
-        "\n Tickets Held" + emoji("usdc") + " " + Commas(balanceRemaining);
-    }
-    if (polygonDelegatedBalance > balanceRemaining) {
-      withdrawString +=
-        "\n Tickets + Delegation " +
-        emoji("usdc") +
-        " " +
-        Commas(parseFloat(polygonDelegatedBalance));
-    }
-
-    playerDataAvalanche = playerData.filter(function (entry) {
-      return entry.network === "avalanche";
-    });
-
-    let experienceAvalanche = playerDataAvalanche.length;
-    let balanceRemainingAvalanche = parseFloat(
-      ethers.utils.formatUnits(balanceAvalanche, 6)
-    );
-    let avalancheDelegatedBalance = await delegatedBalance(address, 4);
-
-    if (experienceAvalanche > 0) {
-      if (gotOne === 1) {
-        withdrawString += "\n \n";
-      }
-      withdrawString +=
-        emoji("avalanche") +
-        " Player [" +
-        address.substring(0, 10) +
-        "](" +
-        "https://snowtrace.io/address/" +
-        address +
-        ")";
-
-      withdrawString += "   XP  " + experienceAvalanche + " draws ";
-
-      totalClaimable = 0;
-      for (let x of playerDataAvalanche) {
-        let total = 0;
-        let prize = 0;
-
-        if (x.claimable_prizes !== null) {
-          for (let y of x.claimable_prizes) {
-            prize = y / 10000000 / 10000000;
-            total += parseFloat(prize.toFixed());
-            totalClaimable += parseFloat(prize.toFixed());
-          }
-        }
-      }
-      if (totalClaimable > 0) {
-        averageBalanceAvalanche = averageBalanceAvalanche / 1e6;
-        let aprAvax = parseFloat(
-          (totalClaimable / averageBalanceAvalanche) * timeElapsedAvax
-        ).toFixed();
-        withdrawString +=
-          "\nWon " +
-          emoji("usdc") +
-          " " +
-          Commas(totalClaimable) +
-          "    => " +
-          aprAvax +
-          "% APR";
-        // Average Balance " + emoji("usdc") + " \ \ " + Commas(averageBalanceAvalanche)
-      }
-    }
-
-    if (balanceRemainingAvalanche > 1) {
-      withdrawString +=
-        "\n Tickets Held " +
-        emoji("usdc") +
-        " " +
-        Commas(balanceRemainingAvalanche);
-    }
-    if (avalancheDelegatedBalance > balanceRemainingAvalanche) {
-      withdrawString +=
-        "\nTickets + Delegation " +
-        emoji("usdc") +
-        " " +
-        Commas(parseFloat(avalancheDelegatedBalance));
-    }
-
-    playerDataEthereum = playerData.filter(function (entry) {
-      return entry.network === "ethereum";
-    });
-
-    let experienceEthereum = playerDataEthereum.length;
-    let balanceRemainingEthereum = parseFloat(
-      ethers.utils.formatUnits(balanceEthereum, 6)
-    );
-    let delegatedBalanceEthereum = await delegatedBalance(address, 1);
-
-    if (experienceEthereum > 0) {
-      if (gotOne === 1) {
-        withdrawString += "\n \n";
-      }
-      withdrawString +=
-        emoji("ethereum") +
-        " Player [" +
-        address.substring(0, 10) +
-        "](" +
-        "https://etherscan.io/address/" +
-        address +
-        ")";
-
-      withdrawString += "   XP  " + experienceEthereum + " draws ";
-
-      totalClaimable = 0;
-      for (let x of playerDataEthereum) {
-        let total = 0;
-        let prize = 0;
-
-        if (x.claimable_prizes !== null) {
-          for (let y of x.claimable_prizes) {
-            prize = y / 10000000 / 10000000;
-            total += parseFloat(prize.toFixed());
-            totalClaimable += parseFloat(prize.toFixed());
-          }
-        }
-      }
-      if (totalClaimable > 0) {
-        averageBalanceEthereum = averageBalanceEthereum / 1e6;
-        let apr = parseFloat(
-          (totalClaimable / averageBalanceEthereum) * timeElapsed
-        ).toFixed();
-        withdrawString +=
-          "\nWon " +
-          emoji("usdc") +
-          " " +
-          Commas(totalClaimable) +
-          "    => " +
-          apr +
-          "% APR\nAverage Balance " +
-          emoji("usdc") +
-          "   " +
-          Commas(averageBalanceEthereum);
-      }
-    }
-
-    if (balanceRemainingEthereum > 1) {
-      withdrawString +=
-        "\n Current Balance " +
-        emoji("usdc") +
-        " " +
-        Commas(balanceRemainingEthereum);
-    }
-    if (delegatedBalanceEthereum > balanceRemainingEthereum) {
-      withdrawString +=
-        "\nDelegated Balance " +
-        emoji("usdc") +
-        " " +
-        Commas(parseFloat(delegatedBalanceEthereum));
-    }
-  } catch (error) {
-    console.log(error);
-  }
-  return withdrawString;
-}
-
 async function liquidity() {
   try {
     console.log("liquidity function");
@@ -654,66 +313,6 @@ async function liquidity() {
   }
 }
 
-
-async function allSea(collectionName) {
-  try {
-    let fetchedSea = await seaFetch(collectionName)
-    let floorPrice = fetchedSea.stats.floor_price
-    let numOwners = fetchedSea.stats.num_owners
-    let totalVolume = fetchedSea.stats.total_volume
-    let totalSupply = fetchedSea.stats.total_supply
-    let seaEmbed = new MessageEmbed()
-      .setColor("#0099ff")
-      .setTitle("OpenSea Details for `" + collectionName + "`")
-      .setDescription("Floor Price `" + floorPrice + "`" +
-        "\nOwners `" + numOwners + "`" +
-        "\nTotal Volume `" + totalVolume.toFixed(0) + "`" +
-        "\nTotal Supply `" + totalSupply + "`"
-      )
-      .setImage();
-    return seaEmbed
-
-  } catch (error) { console.log(error) }
-}
-async function gallery() {
-  let collection = ["tubby-cats", "bobutoken", "murixhaus", "mfers", "milady", "genesis-oath", "snooponsound", "white-rabbit-producer-pass"];
-  let descriptionText = ""
-  for (x = 0; x < collection.length; x++) {
-    let fetchedSea = await seaFetch(collection[x])
-    descriptionText = descriptionText + collection[x] + " `" + fetchedSea.stats.floor_price + "`\n"
-  }
-  let seaEmbed = new MessageEmbed()
-    .setColor("#0099ff")
-    .setTitle("NFTogether Gallery Floor Prices")
-    .setDescription(descriptionText)
-    .setImage();
-  return seaEmbed
-
-}
-async function seaFloor(collectionName) {
-  try {
-
-    let fetchedSea = await seaFetch(collectionName)
-    let floorPrice = fetchedSea.stats.floor_price
-    if (floorPrice === null) {
-      let oneDayAvgPrice = parseFloat(fetchedSea.stats.one_day_average_price)
-      return "__OpenSea__ One Day Average Price For:\n`" + collectionName + "` \ \ \ \ \ `" + oneDayAvgPrice.toFixed(2) + "` \ \ \ `ETH`"
-
-    } else {
-      return "__OpenSea__ Floor Price For:\n`" + collectionName + "` \ \ \ \ \ `" + floorPrice + "` \ \ \ `ETH`"
-    }
-
-  } catch (error) { return "Collection not found"; console.log(error) }
-}
-
-async function seaFetch(collectionName) {
-  try {
-    let fetchSea = await fetch("https://api.opensea.io/api/v1/collection/" + collectionName + "/stats")
-    let fetchedSea = await fetchSea.json()
-    return fetchedSea
-
-  } catch (error) { console.log(error) }
-}
 
 async function wins2(address) {
   try {
@@ -860,91 +459,6 @@ async function grand(draw) {
     }
   } catch (error) {
     return "Couldn't find that one friend.  `=grandprize <draw number>`";
-    console.log(error);
-  }
-}
-async function prizes(address, draw) {
-  try {
-    // console.log("address", address);
-    // console.log("draw", draw);
-    drawId = parseInt(draw);
-    let drawFetch = await fetch(
-      "https://poolexplorer.xyz/player?address=" + address
-    );
-    let drawResult = await drawFetch.json();
-    drawResult = drawResult.filter((draw) => draw.draw_id === drawId);
-    let polygonWins = {};
-    let avalancheWins = {};
-    let ethereumWins = {};
-    console.log(drawResult, " resultlsjlkjsdf");
-    try {
-      polygonWins = drawResult.filter((word) => word.network === "polygon");
-      polygonWins = polygonWins[0];
-    } catch (error) {
-      console.log(error);
-    }
-    try {
-      avalancheWins = drawResult.filter((word) => word.network === "avalanche");
-      avalancheWins = avalancheWins[0];
-    } catch (error) {
-      console.log(error);
-    }
-    try {
-      ethereumWins = drawResult.filter((word) => word.network === "ethereum");
-      ethereumWins = ethereumWins[0];
-    } catch (error) {
-      console.log(error);
-    }
-    // console.log(result);
-    // console.log(result.length);
-
-    let prizeString = "PRIZES WON || `DRAW " + draw + "`  ";
-    try {
-      if (polygonWins.claimable_prizes.length === 0) {
-        return "No claimable prizes for draw " + drawId;
-      } else if (polygonWins.claimable_prizes.length === 1) {
-        prizeString += "    " + emoji(polygonWins.network);
-        prizeString += "   " + fourteenUsdc(polygonWins.claimable_prizes[0]);
-      } else {
-        prizeString += "    " + emoji(polygonWins.network);
-
-        for (doubleWin of polygonWins.claimable_prizes) {
-          prizeString += "   " + fourteenUsdc(doubleWin);
-        }
-      }
-    } catch (error) { }
-    try {
-      if (avalancheWins.claimable_prizes.length === 0) {
-        return "No claimable prizes for draw " + drawId;
-      } else if (avalancheWins.claimable_prizes.length === 1) {
-        prizeString += "    " + emoji(avalancheWins.network);
-        prizeString += "   " + fourteenUsdc(avalancheWins.claimable_prizes[0]);
-      } else {
-        prizeString += "    " + emoji(avalancheWins.network);
-
-        for (doubleWin of avalancheWins.claimable_prizes) {
-          prizeString += "   " + fourteenUsdc(doubleWin);
-        }
-      }
-    } catch (error) { }
-    try {
-      if (ethereumWins.claimable_prizes) {
-        if (ethereumWins.claimable_prizes.length === 0) {
-          return "No claimable prizes for draw " + drawId;
-        } else if (ethereumWins.claimable_prizes.length === 1) {
-          prizeString += "    " + emoji(ethereumWins.network);
-          prizeString += "   " + fourteenUsdc(ethereumWins.claimable_prizes[0]);
-        } else {
-          prizeString += "    " + emoji(ethereumWins.network);
-
-          for (doubleWin of ethereumWins.claimable_prizes) {
-            prizeString += "   " + fourteenUsdc(doubleWin);
-          }
-        }
-      }
-    } catch (error) { }
-    return prizeString;
-  } catch (error) {
     console.log(error);
   }
 }
@@ -1379,14 +893,14 @@ async function go() {
           let prizeQuery = message.content.split(" ");
           address = prizeQuery[1];
           draw = prizeQuery[2];
-          prizes(address, draw).then((prizeText) => {
+          Prizes(address, draw).then((prizeText) => {
             message.author.send(prizeText);
           });
         }
         if (message.content.startsWith("=player")) {
           let prizeQuery = message.content.split(" ");
           address = prizeQuery[1];
-          player(address).then((playerText) => {
+          Player(address).then((playerText) => {
             const playerEmbed = new MessageEmbed()
               .setColor("#0099ff")
               .setDescription(playerText);
@@ -1449,7 +963,7 @@ async function go() {
         if (message.content.startsWith("=sea")) {
           let seaRequest = message.content.split(" ");
           let collection = seaRequest[1];
-          allSea(collection).then(sea => { message.reply({ embeds: [sea] }) }
+          AllSea(collection).then(sea => { message.reply({ embeds: [sea] }) }
 
           )
         }
@@ -1465,13 +979,13 @@ async function go() {
         }
 
         if (message.content.startsWith("=gallery")) {
-          gallery().then(sea => { message.reply({ embeds: [sea] }) }
+          Gallery().then(sea => { message.reply({ embeds: [sea] }) }
           )
         }
         if (message.content.startsWith("=floor")) {
           let seaRequest = message.content.split(" ");
           let collection = seaRequest[1];
-          seaFloor(collection).then(sea => { message.reply(sea) }
+          SeaFloor(collection).then(sea => { message.reply(sea) }
 
           )
         }
@@ -1616,7 +1130,7 @@ async function go() {
           let prizeQuery = message.content.split(" ");
           address = prizeQuery[1];
           draw = prizeQuery[2];
-          prizes(address, draw).then((prizeText) => {
+          Prizes(address, draw).then((prizeText) => {
             message.channel.send(prizeText);
           });
         }
@@ -1667,7 +1181,7 @@ async function go() {
         if (message.content.startsWith("=player")) {
           let prizeQuery = message.content.split(" ");
           address = prizeQuery[1];
-          player(address).then((playerText) => {
+          Player(address).then((playerText) => {
             const playerEmbed = new MessageEmbed()
               .setColor("#0099ff")
               .setDescription(playerText);
