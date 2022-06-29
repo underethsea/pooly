@@ -2,6 +2,7 @@
 const dotenv = require("dotenv");
 dotenv.config();
 
+
 // const ethereumEndpoint = "https://mainnet.infura.io/v3/" + process.env.ETHEREUM_KEY;
 // const ethereumEndpoint = "https://eth-mainnet.alchemyapi.io/v2/IoY2MivSyvhBktzHoyto2ZqUsG2BEWth"
 
@@ -11,7 +12,7 @@ const avalancheEndpoint = "https://api.avax.network/ext/bc/C/rpc";
 const optimismEndpoint = "https://opt-mainnet.g.alchemy.com/v2/" + process.env.POLYGON_KEY;
 // const avalancheEndpoint = "https://rpc.ankr.com/avalanche";
 
-const PROVIDER = {
+const PROVIDERS = {
     POLYGON: new ethers.providers.JsonRpcProvider(polygonEndpoint),
     AVALANCHE: new ethers.providers.JsonRpcProvider(
         avalancheEndpoint
@@ -20,4 +21,4 @@ const PROVIDER = {
     OPTIMISM: new ethers.providers.JsonRpcProvider(optimismEndpoint)
 }
 
-modules.export = { PROVIDER }
+modules.export = { PROVIDERS }

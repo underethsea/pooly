@@ -10,6 +10,7 @@ const fetch = require("cross-fetch");
 const { ADDRESS } = require("./constants/address.js");
 const { ABI } = require("./constants/abi.js")
 const { FILTERS } = require("./constants/filters.js")
+const { PROVIDERS } = require("./constants/providersjs")
 
 const Discord = require("discord.js");
 const { DISCORDID } = require("./constants/discordId.js")
