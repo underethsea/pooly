@@ -2,8 +2,6 @@ const { Client, Intents } = require("discord.js");
 const dotenv = require("dotenv");
 dotenv.config();
 
-const pgp = require("pg-promise")(/* initialization options */);
-const fs = require("fs");
 const ethers = require("ethers");
 const fetch = require("cross-fetch");
 
@@ -31,6 +29,13 @@ const { Flushable } = require("./functions/flushable.js")
 const { Prizes } = require("./functions/prizes.js")
 const { Player } = require("./functions/player.js")
 const { AllSea, Gallery, SeaFloor } = require("./functions/nft.js")
+const { Depositors } = require("./functions/depositors.js")
+const { DelegatedBalance } = require("./functions/delegatedBalance.js")
+const { Ukraine } = require("./functions/ukraine.js")
+const { Wins } = require("./functions/wins.js")
+const { GrandPrize } = require("./functions/grandPrize.js")
+const { AaveRewards } = require("./functions/aaveRewards.js")
+const { AvalancheClaimEvents, PolygonClaimEvents } = require("./listeners/claimEvents.js")
 
 async function winners(draw) {
   let drawId = parseInt(draw)
@@ -40,7 +45,6 @@ async function winners(draw) {
   return winnerCount.toString()
 }
 
-
 const commas = (number) => {
   let fixed = number.toFixed();
   return fixed.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
@@ -48,128 +52,6 @@ const commas = (number) => {
 const usdc = (amount) => {
   return amount / 1e6;
 };
-async function delegatedBalance(address, network) {
-  try {
-    if (network === 1) {
-      contract = CONTRACTS.TICKET.ETHEREUM;
-    }
-    if (network === 3) {
-      contract = CONTRACTS.TICKET.POLYGON;
-    }
-    if (network === 4) {
-      contract = CONTRACTS.TICKET.AVALANCHE;
-    }
-    let nowTime = parseInt(Date.now() / 1000);
-    let balance = await contract.getBalanceAt(address, nowTime);
-    balance = ethers.utils.formatUnits(balance, 6);
-    return balance;
-  } catch (error) {
-
-    console.log(error);
-    return 0
-  }
-}
-
-async function ukraine() {
-  try {
-    let ethereumBalance = await delegatedBalance(
-      "0xb37b3b78022E6964fe80030C9161525880274010",
-      1
-    );
-    let polygonBalance = await delegatedBalance(
-      "0xb37b3b78022E6964fe80030C9161525880274010",
-      3
-    );
-    let avalancheBalance = await delegatedBalance(
-      "0xb37b3b78022E6964fe80030C9161525880274010",
-      4
-    );
-    let ukraineString = "UKRAINE || ";
-    if (polygonBalance > 0) {
-      ukraineString +=
-        "    POLY: " + emoji("usdc") + " " + Commas(parseFloat(polygonBalance));
-    }
-    if (avalancheBalance > 0) {
-      ukraineString +=
-        "    AVAX: " +
-        emoji("usdc") +
-        " " +
-        Commas(parseFloat(avalancheBalance));
-    }
-    if (ethereumBalance > 0) {
-      ukraineString +=
-        "    ETH: " + emoji("usdc") + " " + Commas(parseFloat(ethereumBalance));
-    }
-    return ukraineString;
-  } catch (error) {
-    console.log(error);
-  }
-}
-
-async function depositors() {
-  const polygonCovalent =
-    "https://api.covalenthq.com/v1/137/tokens/0x6a304dfdb9f808741244b6bfee65ca7b3b3a6076/token_holders/?page-size=15000&key=" +
-    process.env.COVALENT_KEY;
-  const ethereumCovalent =
-    "https://api.covalenthq.com/v1/1/tokens/0xdd4d117723c257cee402285d3acf218e9a8236e1/token_holders/?page-size=5000&key=" +
-    process.env.COVALENT_KEY;
-  const avalancheCovalent =
-    "https://api.covalenthq.com/v1/43114/tokens/0xb27f379c050f6ed0973a01667458af6ecebc1d90/token_holders/?quote-currency=USD&format=JSON&block-height=latest&page-size=5000&key=" +
-    process.env.COVALENT_KEY;
-  let [polyDepositors, avaxDepositors, ethDepositors] = await Promise.all([
-    fetch(polygonCovalent),
-    fetch(avalancheCovalent),
-    fetch(ethereumCovalent),
-  ]);
-  polyDepositors = await polyDepositors.json();
-  avaxDepositors = await avaxDepositors.json();
-  ethDepositors = await ethDepositors.json();
-  let polyCount = polyDepositors.data.items.length;
-  let avaxCount = avaxDepositors.data.items.length;
-  let ethCount = ethDepositors.data.items.length;
-  let totalDepositors = polyCount + avaxCount + ethCount;
-  return (
-    "Depositors ||    TOTAL: " +
-    Commas(totalDepositors) +
-    "    POLY: " +
-    Commas(polyCount) +
-    "    AVAX: " +
-    Commas(avaxCount) +
-    "    ETH: " +
-    Commas(ethCount)
-  );
-}
-async function aaveRewards() {
-  let geckoPrice =
-    "https://api.coingecko.com/api/v3/simple/price?ids=matic-network%2Caave%2Cavalanche-2&vs_currencies=usd";
-  let [
-    polygonAaveIncentivesBalance,
-    avalancheAaveIncentivesBalance,
-    ethereumAaveIncentivesBalance,
-    geckoPriceFetch,
-  ] = await Promise.all([
-    CONTRACTS.AAVEINCENTIVES.POLYGON.getUserUnclaimedRewards(
-      ADDRESS.POLYGON.YIELDSOURCE
-    ),
-    CONTRACTS.AAVEINCENTIVES.AVALANCHE.getUserUnclaimedRewards(
-      ADDRESS.AVALANCHE.YIELDSOURCE
-    ),
-    CONTRACTS.AAVEINCENTIVES.ETHEREUM.getUserUnclaimedRewards(
-      ADDRESS.ETHEREUM.YIELDSOURCE
-    ),
-    fetch(geckoPrice),
-  ]);
-  let geckoJson = await geckoPriceFetch.json();
-  let incentives = {
-    polygon: polygonAaveIncentivesBalance / 1e18,
-    polygonPrice: geckoJson["matic-network"].usd,
-    avalanche: avalancheAaveIncentivesBalance / 1e18,
-    avaxPrice: geckoJson["avalanche-2"].usd,
-    ethereum: ethereumAaveIncentivesBalance / 1e18,
-    aavePrice: geckoJson["aave"].usd,
-  };
-  return incentives;
-}
 async function droppedPrizes(address) {
   let newAddress = address.substring(1, address.length);
   newAddress = "\\" + newAddress;
@@ -178,53 +60,6 @@ async function droppedPrizes(address) {
   console.log(query)
 }
 
-async function apr() {
-  try {
-    let tvlNow = await tvlActive();
-    tvlNow = tvlNow.total;
-    let annualPrize = await prizePerDay();
-    annualPrize = annualPrize * 365;
-    let aprData = {
-      tvl: tvlNow,
-      prizePerYear: annualPrize,
-      apr: (annualPrize / tvlNow) * 100
-    }
-    return aprData;
-  } catch (error) {
-    console.log(error);
-  }
-}
-async function prizePerDay() {
-  try {
-    let newestDrawId = await CONTRACTS.PRIZETIER.ETHEREUM.getNewestDrawId();
-    let prizeTier = await CONTRACTS.PRIZETIER.ETHEREUM.getPrizeTier(newestDrawId);
-    let prizePerDayNow = parseFloat(prizeTier[5]) / 1e6;
-    return prizePerDayNow;
-  } catch (error) {
-    console.log(error);
-  }
-}
-async function tvlActive() {
-  let timeNow = parseInt(Date.now() / 1000);
-  let [polygonGetTotalSupply, avalancheGetTotalSupply, ethereumGetTotalSupply] =
-    await Promise.all([
-      CONTRACTS.TICKET.POLYGON.getTotalSupplyAt(timeNow),
-      CONTRACTS.TICKET.AVALANCHE.getTotalSupplyAt(timeNow),
-      CONTRACTS.TICKET.ETHEREUM.getTotalSupplyAt(timeNow),
-    ]);
-  console.log(polygonGetTotalSupply, avalancheGetTotalSupply, "eth", ethereumGetTotalSupply)
-  let tvlActiveTotal =
-    usdc(polygonGetTotalSupply) +
-    usdc(avalancheGetTotalSupply) +
-    usdc(ethereumGetTotalSupply);
-  let tvlActiveReturn = {
-    total: tvlActiveTotal,
-    polygon: usdc(polygonGetTotalSupply),
-    avalanche: usdc(avalancheGetTotalSupply),
-    ethereum: usdc(ethereumGetTotalSupply),
-  };
-  return tvlActiveReturn;
-}
 async function tvl() {
   let [polygonAaveBalance, avalancheAaveBalance, ethereumAaveBalance] =
     await Promise.all([
@@ -313,80 +148,6 @@ async function liquidity() {
   }
 }
 
-
-async function wins2(address) {
-  try {
-    let fetchAddress = "https://poolexplorer.xyz/player?address=" + address;
-    let drawFetch = await fetch(fetchAddress);
-    let drawResult = await drawFetch.json();
-    drawResult.sort(function (a, b) {
-      return parseFloat(a.draw_id) - parseFloat(b.draw_id);
-    });
-    let polygonWins = {};
-    let avalancheWins = {};
-    let ethereumWins = {};
-    try {
-      polygonWins = drawResult.filter((word) => word.network === "polygon");
-    } catch (error) {
-      console.log(error);
-    }
-    try {
-      avalancheWins = drawResult.filter((word) => word.network === "avalanche");
-    } catch (error) {
-      console.log(error);
-    }
-    try {
-      ethereumWins = drawResult.filter((word) => word.network === "ethereum");
-    } catch (error) {
-      console.log(error);
-    }
-    let winsString = "WINS || `" + address.substring(0, 5) + "`    ";
-    if (polygonWins.length > 0) {
-      let winsCount = 0;
-      winsString += "    " + emoji("polygon");
-      polygonWins.forEach((entry) => {
-        if (entry.claimable_prizes && entry.claimable_prizes.length > 0) {
-          winsCount += 1;
-          winsString += "   " + entry.draw_id;
-        }
-      });
-      if (winsCount === 0) {
-        winsString += "  No wins yet my friend, your time will come.";
-      }
-    }
-    if (avalancheWins.length > 0) {
-      let winsCount = 0;
-      winsString += "    " + emoji("avalanche");
-      avalancheWins.forEach((entry) => {
-        if (entry.claimable_prizes && entry.claimable_prizes.length > 0) {
-          winsCount += 1;
-          winsString += "   " + entry.draw_id;
-        }
-      });
-      if (winsCount === 0) {
-        winsString += "  No wins yet my friend, your time will come.";
-      }
-    }
-    if (ethereumWins.length > 0) {
-      let winsCount = 0;
-      winsString += "    " + emoji("ethereum");
-      ethereumWins.forEach((entry) => {
-        if (entry.claimable_prizes && entry.claimable_prizes.length > 0) {
-          winsCount += 1;
-          winsString += "   " + entry.draw_id;
-        }
-      });
-      if (winsCount === 0) {
-        winsString += "  No wins yet my friend, your time will come.";
-      }
-    }
-    return winsString;
-  } catch (error) {
-    console.log("=wins error, address" + address + " " + error);
-    return "Could not find that one friend. Try `=wins <address>`";
-  }
-}
-
 async function lucky(draw) {
   try {
     let drawFetch = await fetch("https://poolexplorer.xyz/draw" + draw);
@@ -431,37 +192,6 @@ async function luckyg(draw) {
   }
 }
 
-async function grand(draw) {
-  let gp = 0;
-  if (draw > 106) {
-    gp = 1000;
-  } else {
-    gp = 2500;
-  }
-  try {
-    let drawFetch = await fetch("https://poolexplorer.xyz/draw" + draw);
-    let drawResult = await drawFetch.json();
-    grandDogs = [];
-    drawResult.forEach((entry) => {
-      if (parseFloat(entry.w) >= gp) {
-        grandDogs.push(entry);
-      }
-    });
-    let grandString = "GRAND PRIZES DRAW " + draw + " || ";
-    if (grandDogs.length > 0) {
-      grandDogs.forEach((grand) => {
-        grandString +=
-          "\n   " + emoji(grand.n) + " `" + grand.a + "` [" + grand.w + "]";
-      });
-      return grandString;
-    } else {
-      return "No grand prizes for draw " + draw;
-    }
-  } catch (error) {
-    return "Couldn't find that one friend.  `=grandprize <draw number>`";
-    console.log(error);
-  }
-}
 const fourteenUsdc = (amount) => {
   let usdc = amount / 1e14;
   return usdc.toFixed();
@@ -470,6 +200,8 @@ async function go() {
   client.once("ready", () => {
     console.log("Ready!");
   });
+  await PolygonClaimEvents;
+  await AvalancheClaimEvents;
   PROVIDERS.POLYGON.on(FILTERS.DEPOSIT.POLYGON, (depositEvent) => {
     let amount = ethers.utils.defaultAbiCoder.decode(
       ["uint256"],
@@ -727,63 +459,7 @@ async function go() {
   }
 
   // Login to Discord with your client's token
-  PROVIDERS.POLYGON.on(FILTERS.CLAIM.POLYGON, (claimEvent) => {
-    //  console.log(claimEvent.transactionHash)
-    let txHash = claimEvent.transactionHash;
-    let polygonScanUrl = "https://polygonscan.com/tx/";
-    // console.log(claimEvent)
-    let claimAmount = ethers.BigNumber.from(claimEvent.data);
-    claimAmount = parseFloat(ethers.utils.formatUnits(claimAmount, 6));
-    let claimString =
-      "Transaction [" +
-      txHash.substring(0, 10) +
-      "](" +
-      polygonScanUrl +
-      txHash +
-      ")";
-    // console.log(claimString);
-    const claimEmbed = new MessageEmbed()
-      .setColor("#0099ff")
-      .setTitle(
-        emoji("polygon") +
-        " Prize Claim    " +
-        emoji("usdc") +
-        " " +
-        Commas(claimAmount)
-      )
-      .setDescription(claimString);
-
-    client.channels.cache.get(DISCORDID.PT.CLAIMS).send({ embeds: [claimEmbed] });
-  });
-  PROVIDERS.AVALANCHE.on(FILTERS.CLAIM.AVALANCHE, (claimEvent) => {
-    //  console.log(claimEvent.transactionHash)
-    let txHash = claimEvent.transactionHash;
-    let polygonScanUrl = "https://snowtrace.io/tx/";
-    // console.log(claimEvent)
-    let claimAmount = ethers.BigNumber.from(claimEvent.data);
-    claimAmount = parseFloat(ethers.utils.formatUnits(claimAmount, 6));
-    let claimString =
-      "Transaction [" +
-      txHash.substring(0, 10) +
-      "](" +
-      polygonScanUrl +
-      txHash +
-      ")";
-    // console.log(claimString);
-    const claimEmbed = new MessageEmbed()
-      .setColor("#0099ff")
-      .setTitle(
-        emoji("avalanche") +
-        " Prize Claim    " +
-        emoji("usdc") +
-        " " +
-        Commas(claimAmount)
-      )
-      .setDescription(claimString);
-
-    client.channels.cache.get(DISCORDID.PT.CLAIMS).send({ embeds: [claimEmbed] });
-  });
-
+  
   client.on("messageCreate", (message) => {
     const dmHelp = new MessageEmbed()
       .setColor("#0099ff")
@@ -916,7 +592,7 @@ async function go() {
         if (message.content.startsWith("=balance")) {
           let prizeQuery = message.content.split(" ");
           address = prizeQuery[1];
-          delegatedBalance(address).then((playerText) => {
+          DelegatedBalance(address).then((playerText) => {
             message.reply(
               "BALANCE: " + emoji("usdc") + " " + Commas(parseFloat(playerText))
             );
@@ -943,7 +619,7 @@ async function go() {
         if (message.content.startsWith("=wins")) {
           let winsQuery = message.content.split(" ");
           address = winsQuery[1];
-          wins2(address).then((winsText) => {
+          Wins(address).then((winsText) => {
             message.author.send(winsText);
           });
         }
@@ -1094,7 +770,7 @@ async function go() {
         //   }
         // }
         if (message.content.startsWith("=aaverewards")) {
-          aaveRewards().then((rewardsText) => {
+          AaveRewards().then((rewardsText) => {
             let polygonTotal = rewardsText.polygon * rewardsText.polygonPrice;
             let avalancheTotal = rewardsText.avalanche * rewardsText.avaxPrice;
             let ethereumTotal = rewardsText.ethereum * rewardsText.aavePrice;
@@ -1202,7 +878,7 @@ async function go() {
         if (message.content.startsWith("=grandprize")) {
           let draw = message.content.split(" ");
           draw = draw[1];
-          grand(draw).then((grandText) => message.channel.send(grandText));
+          GrandPrize(draw).then((grandText) => message.channel.send(grandText));
         }
         if (message.content.startsWith("=lucky ")) {
           let draw = message.content.split(" ");
@@ -1288,13 +964,13 @@ async function go() {
         if (message.content.startsWith("=wins")) {
           let winsQuery = message.content.split(" ");
           address = winsQuery[1];
-          wins2(address).then((winsText) => {
+          Wins(address).then((winsText) => {
             message.channel.send(winsText);
           });
         }
 
         if (message.content === "=depositors") {
-          depositors().then((depositorsText) => {
+          Depositors().then((depositorsText) => {
             message.reply(depositorsText);
           });
         }
