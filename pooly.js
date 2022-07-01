@@ -17,6 +17,7 @@ const client = new Discord.Client({
   partials: ["CHANNEL"],
   intents: ["GUILDS", "GUILD_MESSAGES", "DIRECT_MESSAGES"],
 });
+module.exports.Client = client
 var emoji = require("./functions/emoji.js");
 var calculateWinnings = require("./functions/simulate.js");
 const { GetLp } = require("./protocolOwnedLiquidity.js")
@@ -35,7 +36,7 @@ const { Ukraine } = require("./functions/ukraine.js")
 const { Wins } = require("./functions/wins.js")
 const { GrandPrize } = require("./functions/grandPrize.js")
 const { AaveRewards } = require("./functions/aaveRewards.js")
-const { AvalancheClaimEvents, PolygonClaimEvents } = require("./listeners/claimEvents.js")
+require("./listeners/claimEvents.js")
 
 async function winners(draw) {
   let drawId = parseInt(draw)
@@ -200,8 +201,8 @@ async function go() {
   client.once("ready", () => {
     console.log("Ready!");
   });
-  await PolygonClaimEvents;
-  await AvalancheClaimEvents;
+  // await PolygonClaimEvents;
+  // await AvalancheClaimEvents;
   PROVIDERS.POLYGON.on(FILTERS.DEPOSIT.POLYGON, (depositEvent) => {
     let amount = ethers.utils.defaultAbiCoder.decode(
       ["uint256"],

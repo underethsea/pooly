@@ -1,10 +1,12 @@
 const { PROVIDERS } = require("../constants/providers.js")
 const { FILTERS } = require("../constants/filters.js")
 const { DISCORDID } = require("../constants/discordId.js")
-const { MessageEmbed } = require("discord")
+const { MessageEmbed } = require("discord.js")
+const  emoji  = require("../functions/emoji.js")
 const ethers = require("ethers")
+const { Commas } = require("../functions/commas.js")
+const { Client } = require("../pooly.js")
 
-async function polygonClaimEvents() {
 PROVIDERS.POLYGON.on(FILTERS.CLAIM.POLYGON, (claimEvent) => {
     //  console.log(claimEvent.transactionHash)
     let txHash = claimEvent.transactionHash;
@@ -31,10 +33,9 @@ PROVIDERS.POLYGON.on(FILTERS.CLAIM.POLYGON, (claimEvent) => {
       )
       .setDescription(claimString);
 
-    client.channels.cache.get(DISCORDID.PT.CLAIMS).send({ embeds: [claimEmbed] });
-  });}
-  async function avalancheClaimEvents() {
-  PROVIDERS.AVALANCHE.on(FILTERS.CLAIM.AVALANCHE, (claimEvent) => {
+    Client.channels.cache.get(DISCORDID.PT.CLAIMS).send({ embeds: [claimEmbed] });
+  });
+PROVIDERS.AVALANCHE.on(FILTERS.CLAIM.AVALANCHE, (claimEvent) => {
     //  console.log(claimEvent.transactionHash)
     let txHash = claimEvent.transactionHash;
     let polygonScanUrl = "https://snowtrace.io/tx/";
@@ -60,10 +61,6 @@ PROVIDERS.POLYGON.on(FILTERS.CLAIM.POLYGON, (claimEvent) => {
       )
       .setDescription(claimString);
 
-    client.channels.cache.get(DISCORDID.PT.CLAIMS).send({ embeds: [claimEmbed] });
+    Client.channels.cache.get(DISCORDID.PT.CLAIMS).send({ embeds: [claimEmbed] });
   });
-  }
-
-  module.exports.AvalancheClaimEvents = avalancheClaimEvents
-  module.exports.PolygonClaimEvents = polygonClaimEvents
-  
+    

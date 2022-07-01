@@ -1,5 +1,5 @@
 const { Commas } = require("./commas.js")
-const { DelegatedBalance } = require("./functions/delegatedBalance.js")
+const { DelegatedBalance } = require("./delegatedBalance.js")
 async function ukraine() {
     try {
       let ethereumBalance = await DelegatedBalance(

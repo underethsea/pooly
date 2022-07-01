@@ -1,6 +1,6 @@
 
 const fetch = require("cross-fetch")
-const { CONTRACTS} = require("../contracts/contracts.js")
+const { CONTRACTS} = require("../constants/contracts.js")
 const { ADDRESS } = require("../constants/address.js")
 async function aaveRewards() {
     let geckoPrice =
