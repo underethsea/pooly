@@ -1,3 +1,4 @@
+
 const { Client, Intents } = require("discord.js");
 const dotenv = require("dotenv");
 dotenv.config();
@@ -5,11 +6,6 @@ dotenv.config();
 const ethers = require("ethers");
 const fetch = require("cross-fetch");
 
-const { ADDRESS } = require("./constants/address.js");
-const { ABI } = require("./constants/abi.js")
-const { FILTERS } = require("./constants/filters.js")
-const { PROVIDERS } = require("./constants/providers.js")
-const { CONTRACTS } = require("./constants/contracts.js")
 const Discord = require("discord.js");
 const { DISCORDID } = require("./constants/discordId.js")
 const { MessageEmbed } = require("discord.js");
@@ -19,7 +15,6 @@ const client = new Discord.Client({
 });
 module.exports.Client = client
 var emoji = require("./functions/emoji.js");
-var calculateWinnings = require("./functions/simulate.js");
 const { GetLp } = require("./protocolOwnedLiquidity.js")
 const { AddWallet, RemoveWallet, PlayerWallets } = require("./birdCall.js")
 
@@ -36,7 +31,14 @@ const { Ukraine } = require("./functions/ukraine.js")
 const { Wins } = require("./functions/wins.js")
 const { GrandPrize } = require("./functions/grandPrize.js")
 const { AaveRewards } = require("./functions/aaveRewards.js")
+const { TvlActive } = require("./functions/tvlActive.js")
+const { Apr } = require("./functions/apr.js")
+const { Tvl } = require("./functions/tvl.js")
+const { SimulateApy } = require("./functions/simulateApy.js")
+const { Liquidity } = require("./functions/liquidity.js")
 require("./listeners/claimEvents.js")
+require("./listeners/withdrawEvents.js")
+require("./listeners/depositEvents.js")
 
 async function winners(draw) {
   let drawId = parseInt(draw)
@@ -61,35 +63,6 @@ async function droppedPrizes(address) {
   console.log(query)
 }
 
-async function tvl() {
-  let [polygonAaveBalance, avalancheAaveBalance, ethereumAaveBalance] =
-    await Promise.all([
-      polygonAaveContract.balanceOf(ADDRESS.POLYGON.YIELDSOURCE),
-      avalancheAaveContract.balanceOf(ADDRESS.AVALANCHE.YIELDSOURCE),
-      ethereumAaveContract.balanceOf(ADDRESS.ETHEREUM.YIELDSOURCE),
-    ]);
-  polygonAaveBalance = usdc(polygonAaveBalance);
-  avalancheAaveBalance = usdc(avalancheAaveBalance);
-  ethereumAaveBalance = usdc(ethereumAaveBalance);
-  let total = polygonAaveBalance + avalancheAaveBalance + ethereumAaveBalance;
-  let tvl = new MessageEmbed()
-    .setColor("#0099ff")
-    .setTitle(" V4 TVL Total " + emoji("usdc") + " " + Commas(total))
-    .setDescription(
-      emoji("polygon") +
-      " Polygon " +
-      Commas(polygonAaveBalance) +
-      "\n" +
-      emoji("ethereum") +
-      " Ethereum " +
-      Commas(ethereumAaveBalance) +
-      "\n" +
-      emoji("avalanche") +
-      " Avalanche " +
-      Commas(avalancheAaveBalance)
-    );
-  return tvl;
-}
 const oddsNumber = (amount) => {
   if (amount >= 100) {
     return amount.toFixed();
@@ -99,7 +72,7 @@ const oddsNumber = (amount) => {
 };
 async function odds(amount) {
   try {
-    let tvl = await tvlActive();
+    let tvl = await TvlActive();
     tvl = tvl.total;
     console.log("odds tvl", tvl);
     const prizeTier = [1, 3, 12, 48, 192, 768];
@@ -125,27 +98,6 @@ async function odds(amount) {
     return oddsString;
   } catch (error) {
     console.log(error);
-  }
-}
-
-async function liquidity() {
-  try {
-    console.log("liquidity function");
-    let [polygonLiquidity, avalancheLiquidity, ethereumLiquidity] =
-      await Promise.all([
-        CONTRACTS.TICKET.POLYGON.balanceOf(ADDRESS.POLYGON.LIQUIDITY),
-        CONTRACTS.TICKET.AVALANCHE.balanceOf(ADDRESS.AVALANCHE.LIQUIDITY),
-        CONTRACTS.TICKET.ETHEREUM.balanceOf(ADDRESS.ETHEREUM.LIQUIDITY),
-      ]);
-    let liquidityData = {
-      polygon: polygonLiquidity,
-      ethereum: ethereumLiquidity,
-      avalanche: avalancheLiquidity
-    }
-    return liquidityData;
-  } catch (error) {
-    console.log(error);
-    return "Could not fetch";
   }
 }
 
@@ -201,266 +153,6 @@ async function go() {
   client.once("ready", () => {
     console.log("Ready!");
   });
-  // await PolygonClaimEvents;
-  // await AvalancheClaimEvents;
-  PROVIDERS.POLYGON.on(FILTERS.DEPOSIT.POLYGON, (depositEvent) => {
-    let amount = ethers.utils.defaultAbiCoder.decode(
-      ["uint256"],
-      depositEvent.data
-    );
-    amount = parseFloat(amount[0]) / 1e6;
-
-    if (amount > 99) {
-      let address = ethers.utils.defaultAbiCoder.decode(
-        ["address"],
-        depositEvent.topics[2]
-      );
-      address = address[0];
-      let depositString =
-        "Player [" +
-        address.substring(0, 10) +
-        "](" +
-        "https://polygonscan.com/address/" +
-        address +
-        ")";
-
-      const depositEmbed = new MessageEmbed()
-        .setColor("#9B59B6")
-        .setTitle(
-          emoji("polygon") +
-          " Deposit    " +
-          emoji("usdc") +
-          " " +
-          Commas(amount)
-        )
-        .setDescription(depositString);
-      client.channels.cache
-        .get(DISCORDID.PT.TURNSTILE)
-        .send({ embeds: [depositEmbed] });
-    }
-  });
-  PROVIDERS.POLYGON.on(FILTERS.WITHDRAW.POLYGON, (withdrawEvent) => {
-    // console.log("withdraw: ",withdrawEvent)
-    // console.log("data",withdrawEvent.data)
-    let amounts = ethers.utils.defaultAbiCoder.decode(
-      ["uint256", "uint256"],
-      withdrawEvent.data
-    );
-    let address = ethers.utils.defaultAbiCoder.decode(
-      ["address"],
-      withdrawEvent.topics[2]
-    );
-    let amount = parseFloat(amounts[0]) / 1e6;
-    // console.log("amount: ",amount)
-    // console.log("address: ",address[0])
-    if (parseInt(amount) > 98) {
-      getPlayer(address[0], amount).then((withdrawString) => {
-        const withdrawEmbed = new MessageEmbed()
-          .setColor("#992D22")
-          .setTitle(
-            emoji("polygon") +
-            " Withdraw    " +
-            emoji("usdc") +
-            " " +
-            Commas(amount)
-          )
-          .setDescription(withdrawString);
-
-        client.channels.cache
-          .get(DISCORDID.PT.TURNSTILE)
-          .send({ embeds: [withdrawEmbed] });
-      });
-    }
-  });
-  async function getPlayer(address, amount) {
-    const currentTimestamp = parseInt(Date.now() / 1000);
-    const ticketStartTimestamp = 1634184538;
-    let parsedAmount = amount / 1e6;
-    withdrawString =
-      "Player [" +
-      address.substring(0, 10) +
-      "](" +
-      "https://polygonscan.com/address/" +
-      address +
-      ")";
-    try {
-      let url = "https://poolexplorer.xyz/player?address=" + address;
-      let [balance, averageBalance, playerData] = await Promise.all([
-        CONTRACTS.TICKET.POLYGON.balanceOf(address),
-        CONTRACTS.TICKET.POLYGON.getAverageBalanceBetween(
-          address,
-          ticketStartTimestamp,
-          currentTimestamp
-        ),
-        fetch(url),
-      ]);
-      playerData = await playerData.json();
-      playerData = playerData.filter(function (entry) {
-        return entry.network === "polygon";
-      });
-      let experience = playerData.length;
-      let balanceRemaining = parseFloat(ethers.utils.formatUnits(balance, 6));
-
-      if (experience > 0) {
-        withdrawString += "\nExperience  " + experience + " draws ";
-
-        let totalClaimable = 0;
-        for (let x of playerData) {
-          let total = 0;
-          let prize = 0;
-
-          if (x.claimable_prizes !== null) {
-            for (let y of x.claimable_prizes) {
-              prize = y / 10000000 / 10000000;
-              total += parseFloat(prize.toFixed());
-              totalClaimable += parseFloat(prize.toFixed());
-            }
-          }
-        }
-        if (totalClaimable > 0) {
-          withdrawString += "\nWon " + emoji("usdc") + " " + totalClaimable;
-        }
-      }
-      if (balanceRemaining > 1) {
-        withdrawString +=
-          "\nNew Balance " + emoji("usdc") + " " + balanceRemaining.toFixed();
-      }
-    } catch (error) {
-      console.log(error);
-    }
-    return withdrawString;
-  }
-
-  PROVIDERS.AVALANCHE.on(FILTERS.DEPOSIT.AVALANCHE, (depositEvent) => {
-    let amount = ethers.utils.defaultAbiCoder.decode(
-      ["uint256"],
-      depositEvent.data
-    );
-    amount = parseFloat(amount[0]) / 1e6;
-
-    if (amount > 99) {
-      let address = ethers.utils.defaultAbiCoder.decode(
-        ["address"],
-        depositEvent.topics[2]
-      );
-      address = address[0];
-      let depositString =
-        "Player [" +
-        address.substring(0, 10) +
-        "](" +
-        "https://snowtrace.io/address/" +
-        address +
-        ")";
-
-      const depositEmbed = new MessageEmbed()
-        .setColor("#9B59B6")
-        .setTitle(
-          emoji("avalanche") +
-          " Deposit    " +
-          emoji("usdc") +
-          " " +
-          Commas(amount)
-        )
-        .setDescription(depositString);
-      client.channels.cache
-        .get(DISCORDID.PT.TURNSTILE)
-        .send({ embeds: [depositEmbed] });
-    }
-  });
-  PROVIDERS.AVALANCHE.on(FILTERS.WITHDRAW.AVALANCHE, (withdrawEvent) => {
-    // console.log("withdraw: ",withdrawEvent)
-    // console.log("data",withdrawEvent.data)
-    let amounts = ethers.utils.defaultAbiCoder.decode(
-      ["uint256", "uint256"],
-      withdrawEvent.data
-    );
-    let address = ethers.utils.defaultAbiCoder.decode(
-      ["address"],
-      withdrawEvent.topics[2]
-    );
-    let amount = parseFloat(amounts[0]) / 1e6;
-    // console.log("amount: ",amount)
-    // console.log("address: ",address[0])
-    if (parseInt(amount) > 98) {
-      getPlayerAvax(address[0], amount).then((withdrawString) => {
-        const withdrawEmbed = new MessageEmbed()
-          .setColor("#992D22")
-          .setTitle(
-            emoji("avalanche") +
-            " Withdraw    " +
-            emoji("usdc") +
-            " " +
-            Commas(amount)
-          )
-          .setDescription(withdrawString);
-
-        client.channels.cache
-          .get(DISCORDID.PT.TURNSTILE)
-          .send({ embeds: [withdrawEmbed] });
-      });
-    }
-  });
-  async function getPlayerAvax(address, amount) {
-    const currentTimestamp = parseInt(Date.now() / 1000);
-    const ticketStartTimestamp = 1634184538;
-    let parsedAmount = amount / 1e6;
-    withdrawString =
-      "Player [" +
-      address.substring(0, 10) +
-      "](" +
-      "https://snowtrace.io/address/" +
-      address +
-      ")";
-    try {
-      let url = "https://poolexplorer.xyz/player?address=" + address;
-      let [balance, averageBalance, playerData] = await Promise.all([
-        CONTRACTS.TICKET.POLYGON.balanceOf(address),
-        CONTRACTS.TICKET.POLYGON.getAverageBalanceBetween(
-          address,
-          ticketStartTimestamp,
-          currentTimestamp
-        ),
-        fetch(url),
-      ]);
-      playerData = await playerData.json();
-      playerData = playerData.filter(function (entry) {
-        return entry.network === "avalanche";
-      });
-      let experience = playerData.length;
-      let balanceRemaining = parseFloat(ethers.utils.formatUnits(balance, 6));
-
-      if (experience > 0) {
-        withdrawString += "\nExperience  " + experience + " draws ";
-
-        let totalClaimable = 0;
-        for (let x of playerData) {
-          let total = 0;
-          let prize = 0;
-
-          if (x.claimable_prizes !== null) {
-            for (let y of x.claimable_prizes) {
-              prize = y / 10000000 / 10000000;
-              total += parseFloat(prize.toFixed());
-              totalClaimable += parseFloat(prize.toFixed());
-            }
-          }
-        }
-        if (totalClaimable > 0) {
-          withdrawString += "\nWon " + emoji("usdc") + " " + totalClaimable;
-        }
-      }
-      if (balanceRemaining > 1) {
-        withdrawString +=
-          "\nNew Balance " + emoji("usdc") + " " + balanceRemaining.toFixed();
-      }
-    } catch (error) {
-      console.log(error);
-    }
-    return withdrawString;
-  }
-
-  // Login to Discord with your client's token
-  
   client.on("messageCreate", (message) => {
     const dmHelp = new MessageEmbed()
       .setColor("#0099ff")
@@ -667,7 +359,7 @@ async function go() {
           )
         }
         if (message.content === "=liquidity") {
-          liquidity().then((liquidityData) => {
+          Liquidity().then((liquidityData) => {
             let liquidityString = emoji("polygon") + " `" +
               Commas(usdc(liquidityData.polygon)) +
               "`\n" + emoji("ethereum") + " `" +
@@ -691,7 +383,7 @@ async function go() {
             message.reply("What amount is that friend?");
           } else {
             message.reply("I'm going to do a bunch of calculations, be right back!");
-            simulateApy(amount, 30000000, 0.05).then((apyText) => {
+            SimulateApy(amount, 30000000, 0.05).then((apyText) => {
               let simulateText =
                 "<:TokenUSDC:823404729634652220> DEPOSIT `" +
                 Commas(parseFloat(amount)) +
@@ -812,7 +504,7 @@ async function go() {
           });
         }
         if (message.content === "=apr") {
-          apr().then((aprText) => {
+          Apr().then((aprText) => {
             const aprEmbed = new MessageEmbed()
               .setColor("#0099ff")
               .setTitle("Current Prize APR")
@@ -821,10 +513,10 @@ async function go() {
           });
         }
         if (message.content === "=tvl") {
-          tvl().then((tvlText) => message.channel.send({ embeds: [tvlText] }));
+        Tvl().then((tvlText) => message.channel.send({ embeds: [tvlText] }));
         }
         if (message.content === "=tvl active") {
-          tvlActive().then((tvlActiveAmt) => {
+          TvlActive().then((tvlActiveAmt) => {
             let tvlEmbed = new MessageEmbed()
               .setColor("#0099ff")
               .setTitle(
@@ -1057,388 +749,3 @@ async function go() {
 }
 
 go();
-
-// fork of script from @KingXKok of PT Discord
-
-const simulationDays = 365;
-const simulationRuns = 100;
-
-const maxPrizes = 2;
-
-const gasToClaim = 0;
-// const tierNumPrizes = [1, 3, 12, 48, 192, 768, 3072];
-// const tierPrizes = [2500, 500, 200, 50, 10, 5, 1];
-
-
-
-// let tierNumPrizes = [1, 3, 12, 48, 192, 768]; // option A
-// let tierPrizes = [1000, 100, 50, 10, 5, 5]; // option A
-
-function scalingFunction(deposit) {
-  let scalingVariable = 1; // used to make calculating prizes faster as deposit grows
-
-  if (deposit > 1999 && deposit > 200) {
-    scalingVariable = 5;
-  }
-  if (deposit > 4999) {
-    scalingVariable = 10;
-  }
-  if (deposit > 9999) {
-    scalingVariable = 20;
-  }
-  if (deposit > 19999) {
-    scalingVariable = deposit / 400;
-  }
-  console.log(scalingVariable)
-
-  return scalingVariable
-
-}
-async function simulateApy(depositAmount, removedVar, gasToClaim) {
-
-  let tierNumPrizes = [1, 3, 12, 48, 192, 768]; // newly proposed
-  let tierPrizes = [1000, 100, 50, 10, 5, 5]; //newly proposed
-
-  let totalPrizeValue = 0;
-  let totalPrizes = 0;
-  let gasCost = 0;
-  console.log(tierNumPrizes)
-
-  let scalingVariable = scalingFunction(depositAmount)
-  console.log(scalingVariable)
-
-  for (x = 0; x < tierNumPrizes.length; x++) {
-    totalPrizeValue += tierNumPrizes[x] * tierPrizes[x];
-    if (tierNumPrizes[x] * tierPrizes[x] > 0) {
-      totalPrizes += tierNumPrizes[x];
-    }
-  }
-  let tvl = await tvlActive()
-  tvl = tvl.total;
-  console.log(tvl)
-  const dailyProbWin = 1 / (tvl / totalPrizes / scalingVariable); // daily dollar probability of winning
-
-  // console.log("total prize value: ", totalPrizeValue);
-  // console.log("total number of prizes: ", totalPrizes);
-
-  let tierPrizesAfterGas = [];
-
-  for (x in tierPrizes) {
-    let prizeVal = Math.max(0, tierPrizes[x] - gasToClaim);
-
-    tierPrizesAfterGas.push(prizeVal);
-  }
-
-  let claimable = 0;
-  let winnings = 0;
-  let min = depositAmount;
-  let max = 0;
-  let claimableAmount = 0;
-  let droppedTotal = 0;
-  let firstPrizeDayTotal = 0;
-  for (x = 0; x < simulationRuns; x++) {
-    winnings = calculateWinnings(
-      depositAmount,
-      simulationDays,
-      scalingVariable,
-      totalPrizes,
-      dailyProbWin,
-      tierPrizesAfterGas,
-      tierNumPrizes,
-      maxPrizes
-    );
-    // log each simulation
-    // console.log(winnings);
-    droppedNumber = winnings[3];
-    droppedTotal += droppedNumber;
-    claimableAmount = winnings[0];
-    claimable += claimableAmount;
-    firstPrizeDayTotal += winnings[4];
-    if (claimableAmount < min) {
-      min = claimableAmount;
-    }
-    if (claimableAmount > max) {
-      max = claimableAmount;
-    }
-  }
-  tierString = "";
-  for (x in tierNumPrizes) {
-    tierString += tierNumPrizes[x] + ": " + tierPrizes[x] + " ";
-  }
-  // console.log("prize tiering: ", tierString);
-  // console.log(
-  //   depositAmount,
-  //   " deposited for ",
-  //   simulationDays,
-  //   " days with gas cost to claim of ",
-  //   gasToClaim
-  // );
-  // console.log("unluckiest player claimable: ", min.toFixed());
-  // console.log("luckiest player claimable: ", max.toFixed());
-
-  let annualized = (365 / simulationDays) * 100;
-  let averageClaimable = claimable / simulationRuns;
-  let averageApr = annualized * (claimable / simulationRuns / depositAmount);
-  let unluckyApr = annualized * (min / depositAmount);
-  let luckyApr = annualized * (max / depositAmount);
-
-  console.log(
-    "average claimable: ",
-    averageClaimable.toFixed(),
-    " ",
-    averageApr.toFixed(2),
-    "% APR"
-  );
-  // console.log("prizes dropped per player", droppedTotal / simulationRuns);
-  // console.log("average first prize day: ",firstPrizeDayTotal/simulationRuns)
-  // console.log("simulated ", simulationRuns, " times with a TVL of ", tvl);
-  // console.dir(prizeResults, { depth: null });
-
-  // more than 100 items
-  // console.log(util.inspect(prizeResults, { maxArrayLength: null }))
-
-  // example ascii chart
-  // console.log (asciichart.plot (prizeResults,{height:30}))
-  let results = {
-    average: averageApr.toFixed(2),
-    unlucky: unluckyApr.toFixed(2),
-    lucky: luckyApr.toFixed(2),
-  };
-  return results;
-}
-
-
-async function optionA(depositAmount, removedVar, gasToClaim) {
-
-  let tierNumPrizes = [1, 3, 12, 48, 192, 768]; // option A
-
-  let tierPrizes = [1000, 100, 50, 10, 5, 5]; // option A
-
-  let totalPrizeValue = 0;
-  let totalPrizes = 0;
-  let gasCost = 0;
-
-  let scalingVariable = scalingFunction(depositAmount)
-
-  for (x = 0; x < tierNumPrizes.length; x++) {
-    totalPrizeValue += tierNumPrizes[x] * tierPrizes[x];
-    if (tierNumPrizes[x] * tierPrizes[x] > 0) {
-      totalPrizes += tierNumPrizes[x];
-    }
-  }
-  console.log(totalPrizes)
-  console.log(totalPrizeValue)
-  let tvl = await tvlActive()
-  tvl = tvl.total;
-  console.log(tvl)
-  const dailyProbWin = 1 / (tvl / totalPrizes / scalingVariable); // daily dollar probability of winning
-
-  // console.log("total prize value: ", totalPrizeValue);
-  // console.log("total number of prizes: ", totalPrizes);
-
-  let tierPrizesAfterGas = [];
-
-  for (x in tierPrizes) {
-    let prizeVal = Math.max(0, tierPrizes[x] - gasToClaim);
-
-    tierPrizesAfterGas.push(prizeVal);
-  }
-
-  let claimable = 0;
-  let winnings = 0;
-  let min = depositAmount;
-  let max = 0;
-  let claimableAmount = 0;
-  let droppedTotal = 0;
-  let firstPrizeDayTotal = 0;
-  for (x = 0; x < simulationRuns; x++) {
-    winnings = calculateWinnings(
-      depositAmount,
-      simulationDays,
-      scalingVariable,
-      totalPrizes,
-      dailyProbWin,
-      tierPrizesAfterGas,
-      tierNumPrizes,
-      maxPrizes
-    );
-    // log each simulation
-    // console.log(winnings);
-    droppedNumber = winnings[3];
-    droppedTotal += droppedNumber;
-    claimableAmount = winnings[0];
-    claimable += claimableAmount;
-    firstPrizeDayTotal += winnings[4];
-    if (claimableAmount < min) {
-      min = claimableAmount;
-    }
-    if (claimableAmount > max) {
-      max = claimableAmount;
-    }
-  }
-  tierString = "";
-  for (x in tierNumPrizes) {
-    tierString += tierNumPrizes[x] + ": " + tierPrizes[x] + " ";
-  }
-  // console.log("prize tiering: ", tierString);
-  // console.log(
-  //   depositAmount,
-  //   " deposited for ",
-  //   simulationDays,
-  //   " days with gas cost to claim of ",
-  //   gasToClaim
-  // );
-  // console.log("unluckiest player claimable: ", min.toFixed());
-  // console.log("luckiest player claimable: ", max.toFixed());
-
-  let annualized = (365 / simulationDays) * 100;
-  let averageClaimable = claimable / simulationRuns;
-  let averageApr = annualized * (claimable / simulationRuns / depositAmount);
-  let unluckyApr = annualized * (min / depositAmount);
-  let luckyApr = annualized * (max / depositAmount);
-
-  console.log(
-    "average claimable: ",
-    averageClaimable.toFixed(),
-    " ",
-    averageApr.toFixed(2),
-    "% APR"
-  );
-  // console.log("prizes dropped per player", droppedTotal / simulationRuns);
-  // console.log("average first prize day: ",firstPrizeDayTotal/simulationRuns)
-  // console.log("simulated ", simulationRuns, " times with a TVL of ", tvl);
-  // console.dir(prizeResults, { depth: null });
-
-  // more than 100 items
-  // console.log(util.inspect(prizeResults, { maxArrayLength: null }))
-
-  // example ascii chart
-  // console.log (asciichart.plot (prizeResults,{height:30}))
-  let results = {
-    average: averageApr.toFixed(2),
-    unlucky: unluckyApr.toFixed(2),
-    lucky: luckyApr.toFixed(2),
-    firstPrizeDay: firstPrizeDayTotal / simulationRuns
-  };
-  return results;
-}
-
-
-
-async function optionB(depositAmount, removedVar, gasToClaim) {
-
-  let tierNumPrizes = [1, 3, 12, 48, 192, 3072]; // option A
-
-  let tierPrizes = [1500, 200, 50, 10, 5, 1]; // option A
-
-  let totalPrizeValue = 0;
-  let totalPrizes = 0;
-  let gasCost = 0;
-
-  let scalingVariable = scalingFunction(depositAmount)
-
-  for (x = 0; x < tierNumPrizes.length; x++) {
-    totalPrizeValue += tierNumPrizes[x] * tierPrizes[x];
-    if (tierNumPrizes[x] * tierPrizes[x] > 0) {
-      totalPrizes += tierNumPrizes[x];
-    }
-  }
-  console.log(totalPrizes)
-  console.log(totalPrizeValue)
-  let tvl = await tvlActive()
-  tvl = tvl.total;
-  console.log(tvl)
-  const dailyProbWin = 1 / (tvl / totalPrizes / scalingVariable); // daily dollar probability of winning
-
-  // console.log("total prize value: ", totalPrizeValue);
-  // console.log("total number of prizes: ", totalPrizes);
-
-  let tierPrizesAfterGas = [];
-
-  for (x in tierPrizes) {
-    let prizeVal = Math.max(0, tierPrizes[x] - gasToClaim);
-
-    tierPrizesAfterGas.push(prizeVal);
-  }
-
-  let claimable = 0;
-  let winnings = 0;
-  let min = depositAmount;
-  let max = 0;
-  let claimableAmount = 0;
-  let droppedTotal = 0;
-  let firstPrizeDayTotal = 0;
-  for (x = 0; x < simulationRuns; x++) {
-    winnings = calculateWinnings(
-      depositAmount,
-      simulationDays,
-      scalingVariable,
-      totalPrizes,
-      dailyProbWin,
-      tierPrizesAfterGas,
-      tierNumPrizes,
-      maxPrizes
-    );
-    // log each simulation
-    // console.log(winnings);
-    droppedNumber = winnings[3];
-    droppedTotal += droppedNumber;
-    claimableAmount = winnings[0];
-    claimable += claimableAmount;
-    firstPrizeDayTotal += winnings[4];
-    if (claimableAmount < min) {
-      min = claimableAmount;
-    }
-    if (claimableAmount > max) {
-      max = claimableAmount;
-    }
-  }
-  tierString = "";
-  for (x in tierNumPrizes) {
-    tierString += tierNumPrizes[x] + ": " + tierPrizes[x] + " ";
-  }
-  // console.log("prize tiering: ", tierString);
-  // console.log(
-  //   depositAmount,
-  //   " deposited for ",
-  //   simulationDays,
-  //   " days with gas cost to claim of ",
-  //   gasToClaim
-  // );
-  // console.log("unluckiest player claimable: ", min.toFixed());
-  // console.log("luckiest player claimable: ", max.toFixed());
-
-  let annualized = (365 / simulationDays) * 100;
-  let averageClaimable = claimable / simulationRuns;
-  let averageApr = annualized * (claimable / simulationRuns / depositAmount);
-  let unluckyApr = annualized * (min / depositAmount);
-  let luckyApr = annualized * (max / depositAmount);
-
-  console.log(
-    "average claimable: ",
-    averageClaimable.toFixed(),
-    " ",
-    averageApr.toFixed(2),
-    "% APR"
-  );
-  // console.log("prizes dropped per player", droppedTotal / simulationRuns);
-  // console.log("average first prize day: ",firstPrizeDayTotal/simulationRuns)
-  // console.log("simulated ", simulationRuns, " times with a TVL of ", tvl);
-  // console.dir(prizeResults, { depth: null });
-
-  // more than 100 items
-  // console.log(util.inspect(prizeResults, { maxArrayLength: null }))
-
-  // example ascii chart
-  // console.log (asciichart.plot (prizeResults,{height:30}))
-  let results = {
-    average: averageApr.toFixed(2),
-    unlucky: unluckyApr.toFixed(2),
-    lucky: luckyApr.toFixed(2),
-    firstPrizeDay: firstPrizeDayTotal / simulationRuns
-  };
-  return results;
-}
-
-
-// simulateApy(5000,28000000,.05).then(apy => console.log("finished"))

@@ -3,9 +3,9 @@ const { PrizePerDay } = require("./prizePerDay.js")
 
 async function apr() {
     try {
-        let tvlNow = await tvlActive();
+        let tvlNow = await TvlActive();
         tvlNow = tvlNow.total;
-        let annualPrize = await prizePerDay();
+        let annualPrize = await PrizePerDay();
         annualPrize = annualPrize * 365;
         let aprData = {
             tvl: tvlNow,

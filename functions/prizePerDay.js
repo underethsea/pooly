@@ -28,3 +28,4 @@ async function prizePerDay(chain) {
         console.log(error);
     }
 }
+module.exports.PrizePerDay = prizePerDay
