@@ -1,0 +1,25 @@
+
+Proposed Polygon Tiers:
+export const TIERS.POLYGON = [
+//   { prize: 1420, num: 1 },
+//   { prize: 20, num: 12 },
+   { prize: 1, num: 3072 }
+];
+
+// Proposed Avalanche Tiers:
+// exports.prizeTiers = [
+//   { prize: 1420, num: 1 },
+//   { prize: 17.25, num: 192 }
+// ];
+
+// Proposed Optimism Tiers:
+// exports.prizeTiers = [
+//   { prize: 1420, num: 1 },
+//   { prize: 69, num: 48 }
+// ];
+
+// Proposed Ethereum Tiers:
+// exports.prizeTiers = [
+//   { prize: 1420, num: 1 },
+//   { prize: 1104, num: 3 }
+// ];

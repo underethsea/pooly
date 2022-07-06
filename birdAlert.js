@@ -78,8 +78,10 @@ async function processCompleteDiscordNotify (drawId,dbLength) {
 })}
 }
 
-async function prizes(discord, address, draw) {
+async function prizes(discord, address, label, draw) {
   const tempBlacklist =[]
+  let labelString = ""
+  label !== null & label !== "" ? labelString += " `"+label+"`" : ""
   if (tempBlacklist.includes(address)) { console.log("skipped",address)}else{
   try {
     console.log("address", address,"draw", draw);
@@ -135,7 +137,7 @@ async function prizes(discord, address, draw) {
           "   " +
           fourteenUsdc(polygonWins.claimable_prizes[0]) +
           " " +
-          emoji("usdc");
+          emoji("usdc") + labelString;
       } else {
         didTheyWin = 1;
         prizeString +=
@@ -147,7 +149,7 @@ async function prizes(discord, address, draw) {
           "`  ";
 
         for (doubleWin of polygonWins.claimable_prizes) {
-          prizeString += "   " + fourteenUsdc(doubleWin) + " " + emoji("usdc");
+          prizeString += "   " + fourteenUsdc(doubleWin) + " " + emoji("usdc") + labelString;
         }
       }
     } catch (error) {}
@@ -172,7 +174,7 @@ async function prizes(discord, address, draw) {
           "   " +
           fourteenUsdc(avalancheWins.claimable_prizes[0]) +
           " " +
-          emoji("usdc");
+          emoji("usdc")  + labelString;
       } else {
         if (didTheyWin > 0) {
           prizeString += "\n";
@@ -189,7 +191,7 @@ async function prizes(discord, address, draw) {
           "`  ";
 
         for (doubleWin of avalancheWins.claimable_prizes) {
-          prizeString += "   " + fourteenUsdc(doubleWin) + " " + emoji("usdc");
+          prizeString += "   " + fourteenUsdc(doubleWin) + " " + emoji("usdc") + labelString;
         }
       }
     } catch (error) {}
@@ -215,7 +217,7 @@ async function prizes(discord, address, draw) {
             "   " +
             fourteenUsdc(ethereumWins.claimable_prizes[0]) +
             " " +
-            emoji("usdc");
+            emoji("usdc") + labelString;
         } else {
           if (didTheyWin > 0) {
             prizeString += "\n";
@@ -233,7 +235,7 @@ async function prizes(discord, address, draw) {
 
           for (doubleWin of ethereumWins.claimable_prizes) {
             prizeString +=
-              "   " + fourteenUsdc(doubleWin) + " " + emoji("usdc");
+              "   " + fourteenUsdc(doubleWin) + " " + emoji("usdc") + labelString;
           }
         }
       }
@@ -290,13 +292,13 @@ async function go() {
   let drawId = await getCurrentDraw();
   let isNew = await isNewDraw(drawId)
   if (isNew) {
-  let query = "SELECT DISCORD,WALLET from addresses";
+  let query = "SELECT DISCORD,WALLET,LABEL from addresses";
   let queryRun = await db.any(query);
 
   let dbLength = queryRun.length
 
   queryRun.forEach((player) => {
-      prizes(player.discord, player.wallet, drawId);
+      prizes(player.discord, player.wallet, player.label, drawId);
   });
   
   processCompleteDiscordNotify(drawId,dbLength)

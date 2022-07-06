@@ -1,0 +1,27 @@
+const {CONTRACTS} = require("../constants/contracts")
+const {ADDRESS} = require("../constants/address")
+const { Usdc } = require("./usdc")
+const { TierPrizes } = require("./constants/tierPrizes")
+async function prizeTier(chain) {
+try{
+    let newestDrawId = await CONTRACTS.PRIZETIER.OPTIMISM.getNewestDrawId()
+    newestDrawId = parseInt(newestDrawId)
+    console.log(newestDrawId)
+    let getPrizeTier = await CONTRACTS.PRIZETIER.OPTIMISM.getPrizeTier(newestDrawId)
+    console.log(getPrizeTier)
+    let totalPrize = getPrizeTier[5] / 1e6
+    console.log(totalPrize)
+    let tierPercentages = getPrizeTier[6]
+    let tierPrizes = []
+    let index = 0
+    tierPercentages.forEach(percentage =>{
+        let tierPrize = (percentage / 1e9 / tierPrizes[index]) * totalPrize
+        tierPrize = tierPrize.toFixed(0)
+        tierPrizes.push(tierPrize)
+        index += 1
+    })
+    console.log(tierPrizes)
+    return tierPrizes;
+}catch(error){console.log(error)}
+}
+module.exports.PrizeTier = prizeTier

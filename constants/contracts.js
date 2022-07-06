@@ -17,7 +17,11 @@ const CONTRACTS = {
             ADDRESS.ETHEREUM.TICKET,
             ABI.TICKET,
             PROVIDERS.ETHEREUM
-        )
+        ),
+OPTIMISM: new ethers.Contract(
+	ADDRESS.OPTIMISM.TICKET,
+	ABI.TICKET,
+	PROVIDERS.OPTIMISM),
     }, AAVE: {
         POLYGON: new ethers.Contract(
             ADDRESS.POLYGON.AAVETOKEN,
@@ -31,6 +35,10 @@ const CONTRACTS = {
             ADDRESS.ETHEREUM.AAVETOKEN,
             ABI.AAVE,
             PROVIDERS.ETHEREUM
+        ), OPTIMISM: new ethers.Contract(
+            ADDRESS.OPTIMISM.AAVETOKEN,
+            ABI.AAVE,
+            PROVIDERS.OPTIMISM
         )
     }, AAVEINCENTIVES: {
         POLYGON:
@@ -52,6 +60,20 @@ const CONTRACTS = {
             ADDRESS.ETHEREUM.PRIZETIER,
             ABI.PRIZETIER,
             PROVIDERS.ETHEREUM
+        ),
+        AVALANCHE: new ethers.Contract(
+            ADDRESS.AVALANCHE.PRIZETIER,
+            ABI.PRIZETIER,
+            PROVIDERS.AVALANCHE
+        ),
+        OPTIMISM: new ethers.Contract(
+            ADDRESS.OPTIMISM.PRIZETIER,
+            ABI.PRIZETIER,
+            PROVIDERS.OPTIMISM
+        ), POLYGON: new ethers.Contract(
+            ADDRESS.POLYGON.PRIZETIER,
+            ABI.PRIZETIER,
+            PROVIDERS.POLYGON
         )
     }
 }

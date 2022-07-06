@@ -4,16 +4,20 @@
     const ethEmoji = "927556967164149851";
     const usdcEmoji = "823404729634652220";
     const trophyEmoji = "780567510915219476";
-    
+    const opEmoji = "989110966543343616"
     module.exports = function emoji(name) {
         let emojiString = "";
-        if (name === "polygon" || name === "3") {
+        if (name === "polygon" || name.toString() === "3") {
             emojiString = "<:TokenMATIC:" + polyEmoji + ">";
         }
-        if (name === "ethereum" || name === "1") {
+if (name === "optimism" || name.toString() === "6") {
+            emojiString = "<:OPlogo:" + opEmoji + ">";
+        }
+
+        if (name === "ethereum" || name.toString() === "1") {
             emojiString = "<:eth:" + ethEmoji + ">";
         }
-        if (name === "avalanche" || name === "4") {
+        if (name === "avalanche" || name.toString() === "4") {
             emojiString = "<:avax:" + avaxEmoji + ">";
         }
         if (name === "usdc") {

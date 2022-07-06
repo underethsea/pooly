@@ -7,15 +7,17 @@ const { CONTRACTS } = require("../constants/contracts.js")
 const { MessageEmbed } = require("discord.js");
 
 async function tvl() {
-    let [polygonAaveBalance, avalancheAaveBalance, ethereumAaveBalance] =
+    let [polygonAaveBalance, avalancheAaveBalance, ethereumAaveBalance, optimismAaveBalance] =
       await Promise.all([
         CONTRACTS.AAVE.POLYGON.balanceOf(ADDRESS.POLYGON.YIELDSOURCE),
         CONTRACTS.AAVE.AVALANCHE.balanceOf(ADDRESS.AVALANCHE.YIELDSOURCE),
         CONTRACTS.AAVE.ETHEREUM.balanceOf(ADDRESS.ETHEREUM.YIELDSOURCE),
+	CONTRACTS.AAVE.OPTIMISM.balanceOf(ADDRESS.OPTIMISM.YIELDSOURCE),
       ]);
     polygonAaveBalance = Usdc(polygonAaveBalance);
     avalancheAaveBalance = Usdc(avalancheAaveBalance);
     ethereumAaveBalance = Usdc(ethereumAaveBalance);
+    optimismAaveBalance = Usdc(optimismAaveBalance);
     let total = polygonAaveBalance + avalancheAaveBalance + ethereumAaveBalance;
     let tvl = new MessageEmbed()
       .setColor("#0099ff")
@@ -31,7 +33,11 @@ async function tvl() {
         "\n" +
         emoji("avalanche") +
         " Avalanche " +
-        Commas(avalancheAaveBalance)
+        Commas(avalancheAaveBalance) +
+        "\n" +
+        emoji("optimism") +
+        " Optimism " +
+        Commas(optimismAaveBalance)
       );
     return tvl;
   }

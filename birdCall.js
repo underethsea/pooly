@@ -47,7 +47,7 @@ const cn = {
  async function AddWallet(discord, wallet) {
     try {
       let user = await getUser(discord);
-      if (user.length > 4) {
+      if (user.length > 4 && discord != '348242214968754178' && discord != '662117180158246926') {
         return "You have hit the maximum of 5 wallets";
       }
 /*      let polygonDelegatedBalance = await delegatedBalance(wallet, 3)
@@ -58,17 +58,20 @@ const cn = {
       ethereumDelegatedBalance = parseFloat(ethereumDelegatedBalance)
       let totalBalance = polygonDelegatedBalance + avalancheDelegatedBalance + ethereumDelegatedBalance
 */
+let walletLabel = ""
+if ( label !== undefined) {walletLabel=label}
 let totalBalance = 4  
     if (totalBalance > 3) {
         let queryAddWallet =
-          "INSERT INTO addresses(DISCORD,WALLET) values('" +
+          "INSERT INTO addresses(DISCORD,WALLET,LABEL) values('" +
           discord +
           "','" +
           wallet +
-          "');";
+          "','" + walletLabel + "');";
         //   console.log("adding: ",queryAddWallet)
         let addWallet = await db.any(queryAddWallet);
-        return "Wallet `" + wallet + "` added!";
+        if(walletLabel !== "") {walletLabel = "`"+walletLabel+"`"}
+        return "Wallet `" + wallet + "` added! " + walletLabel;
       } else { return "No ticket balance found on address `" + wallet + "`" }
     } catch (error) {
       console.log(error);
@@ -78,13 +81,15 @@ let totalBalance = 4
   async function PlayerWallets(discord) {
     try {
       let playerWalletsQuery =
-        "SELECT DISCORD,WALLET from addresses WHERE DISCORD ='" + discord + "';";
+        "SELECT DISCORD,WALLET,LABEL from addresses WHERE DISCORD ='" + discord + "';";
       let playerWalletsReturn = await db.any(playerWalletsQuery);
       //   console.log(playerWalletsReturn)
       let count = 1;
       let walletsString = "";
       playerWalletsReturn.forEach((x) => {
-        walletsString += count + ":   `" + x.wallet + "`\n";
+        walletsString += count + ":   `" + x.wallet + "`"
+      x.label !== null && x.label !== "" ? walletsString += " `" + x.label + "`" : ""
+     walletsString += "\n";
         count += 1;
       });
       if (walletsString === "") {
