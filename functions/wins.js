@@ -1,5 +1,5 @@
 const fetch = require("cross-fetch")
-const { Emoji } = require("./emoji.js")
+const emoji  = require("./emoji.js")
 async function wins(address) {
     try {
       let fetchAddress = "https://poolexplorer.xyz/player?address=" + address;
@@ -29,7 +29,7 @@ async function wins(address) {
       let winsString = "WINS || `" + address.substring(0, 5) + "`    ";
       if (polygonWins.length > 0) {
         let winsCount = 0;
-        winsString += "    " + Emoji("polygon");
+        winsString += "    " + emoji("polygon");
         polygonWins.forEach((entry) => {
           if (entry.claimable_prizes && entry.claimable_prizes.length > 0) {
             winsCount += 1;
@@ -42,7 +42,7 @@ async function wins(address) {
       }
       if (avalancheWins.length > 0) {
         let winsCount = 0;
-        winsString += "    " + Emoji("avalanche");
+        winsString += "    " + emoji("avalanche");
         avalancheWins.forEach((entry) => {
           if (entry.claimable_prizes && entry.claimable_prizes.length > 0) {
             winsCount += 1;
@@ -55,7 +55,7 @@ async function wins(address) {
       }
       if (ethereumWins.length > 0) {
         let winsCount = 0;
-        winsString += "    " + Emoji("ethereum");
+        winsString += "    " + emoji("ethereum");
         ethereumWins.forEach((entry) => {
           if (entry.claimable_prizes && entry.claimable_prizes.length > 0) {
             winsCount += 1;

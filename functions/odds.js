@@ -11,10 +11,10 @@ const oddsNumber = (amount) => {
     }
 };
 async function odds(amount, chain) {
-    if (chain == "1" || chain == "eth") { chain = 1 }
-    else if (chain == "3" || chain == "poly") { chain = 3 }
-    else if (chain == "4" || chain == "avax") { chain = 4 }
-    else if (chain === "6" || chain == "op") { chain = 6 }
+    if (chain == "1" || chain.startsWith("eth")) { chain = 1 }
+    else if (chain == "3" || chain.startsWith("poly")) { chain = 3 }
+    else if (chain == "4" || chain.startsWith("ava")) { chain = 4 }
+    else if (chain === "6" || chain.startsWith("op")) { chain = 6 }
     else { chain = 3 }
     try {
         let tvl = await TvlActive();
@@ -38,7 +38,8 @@ async function odds(amount, chain) {
         });
         let anyPrizeOdds = 1 / (1 - Math.pow((tvl - amount) / tvl, totalPrizes));
         let oddsString =
-            emoji("trophy") +
+ ":link: Network "+ emoji(chain) + "\n" +        
+    emoji("trophy") +
             "    Any prize `1 in " +
             oddsNumber(anyPrizeOdds) +
             "`\n\n";
@@ -51,7 +52,7 @@ async function odds(amount, chain) {
                 oddsString += " " + emoji("usdc") + " " + prizeTier[x] + "\n";
             }
         }
-        oddsString +="\n" + " NETWORK "+ emoji(chain)
+        
         return oddsString;
     } catch (error) {
         console.log(error);

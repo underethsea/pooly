@@ -1,7 +1,8 @@
 
 const { TvlActive } = require("./tvlActive.js")
 var calculateWinnings = require("./simulate.js");
-
+const {TierPrizes} = require("../constants/tierPrizes")
+const {PrizeTier } = require("./prizeTier")
 
 // fork of script from @KingXKok of PT Discord
 
@@ -39,12 +40,13 @@ function scalingFunction(deposit) {
   return scalingVariable
 
 }
-async function simulateApy(depositAmount, removedVar, gasToClaim) {
+async function simulateApy(depositAmount, removedVar, gasToClaim, chain) {
 
-  let tierNumPrizes = [1, 3, 12, 48, 192, 768]; // newly proposed
-  let tierPrizes = [1000, 100, 50, 10, 5, 5]; //newly proposed
-
-  let totalPrizeValue = 0;
+ ///  let tierNumPrizes = [1, 3, 12, 48, 192, 768]; // newly proposed
+ //  let tierPrizes = [1000, 100, 50, 10, 5, 5]; //newly proposed
+let tierPrizes = await PrizeTier(chain)
+let tierNumPrizes = TierPrizes  
+let totalPrizeValue = 0;
   let totalPrizes = 0;
   let gasCost = 0;
   console.log(tierNumPrizes)

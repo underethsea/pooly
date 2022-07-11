@@ -10,6 +10,12 @@ const FILTERS = {
         }, AVALANCHE: {
             address: ADDRESS.AVALANCHE.DISTRIBUTOR,
             topics: [ethers.utils.id("ClaimedDraw(address,uint32,uint256)")],
+        }, OPTIMISM: {
+            address: ADDRESS.OPTIMISM.DISTRIBUTOR,
+            topics: [ethers.utils.id("ClaimedDraw(address,uint32,uint256)")],
+        }, ETHEREUM: {
+            address: ADDRESS.ETHEREUM.DISTRIBUTOR,
+            topics: [ethers.utils.id("ClaimedDraw(address,uint32,uint256)")],
         }
     },
     DEPOSIT: {

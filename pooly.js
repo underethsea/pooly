@@ -399,12 +399,20 @@ if (message.content === "=tier") {
                 if (message.content.startsWith("=simulate")) {
                     let apyQuery = message.content.split(" ");
                     amount = apyQuery[1];
+ 	            chain = apyQuery[2]
+		   let chainText = ""
+		    if (chain == "1" || chain.startsWith("eth")) { chain = 1;chainText="Ethereum" }
+    else if (chain == "3" || chain.startsWith("poly")) { chain = 3;chainText="Polygon" }
+    else if (chain == "4" || chain.startsWith("ava")) { chain = 4;chainText="Avalanche" }
+    else if (chain === "6" || chain.startsWith("op")) { chain = 6;chainText="Optimism" }
+    else { chain = 3;chainText="Polygon" }
+
                     if (amount < 2 || amount > 20000000) {
                         message.reply("What amount is that friend?");
                     } else {
                         message.reply("I'm going to do a bunch of calculations, be right back!");
-                        SimulateApy(amount, 30000000, 0.05).then((apyText) => {
-                            let simulateText =
+                        SimulateApy(amount, 30000000, 0.05, chain).then((apyText) => {
+                            let simulateText = ":chains: Network `" + chainText + "`\n" +
                                 "<:TokenUSDC:823404729634652220> DEPOSIT `" +
                                 Commas(parseFloat(amount)) +
                                 "`\n:calendar_spiral: APR Range `" +

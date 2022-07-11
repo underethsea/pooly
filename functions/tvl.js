@@ -18,7 +18,7 @@ async function tvl() {
     avalancheAaveBalance = Usdc(avalancheAaveBalance);
     ethereumAaveBalance = Usdc(ethereumAaveBalance);
     optimismAaveBalance = Usdc(optimismAaveBalance);
-    let total = polygonAaveBalance + avalancheAaveBalance + ethereumAaveBalance;
+    let total = polygonAaveBalance + avalancheAaveBalance + ethereumAaveBalance + optimismAaveBalance;
     let tvl = new MessageEmbed()
       .setColor("#0099ff")
       .setTitle(" V4 TVL Total " + emoji("usdc") + " " + Commas(total))
