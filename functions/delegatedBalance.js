@@ -12,6 +12,10 @@ async function delegatedBalance(address, network) {
         if (network === 4) {
             contract = CONTRACTS.TICKET.AVALANCHE;
         }
+ if (network === 6) {
+            contract = CONTRACTS.TICKET.OPTIMISM;
+        }
+
         let nowTime = parseInt(Date.now() / 1000);
         let balance = await contract.getBalanceAt(address, nowTime);
         balance = ethers.utils.formatUnits(balance, 6);

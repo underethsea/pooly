@@ -75,7 +75,28 @@ OPTIMISM: new ethers.Contract(
             ABI.PRIZETIER,
             PROVIDERS.POLYGON
         )
-    }
+    }, AAVEDATA: {
+OPTIMISM: new ethers.Contract(
+            ADDRESS.OPTIMISM.AAVEDATA,
+            ABI.AAVEDATA,
+            PROVIDERS.OPTIMISM),
+ETHEREUM: new ethers.Contract(
+            ADDRESS.ETHEREUM.AAVEDATA,
+            ABI.AAVEDATAV2,
+            PROVIDERS.ETHEREUM),
+POLYGON: new ethers.Contract(
+            ADDRESS.POLYGON.AAVEDATA,
+            ABI.AAVEDATAV2,
+            PROVIDERS.POLYGON),
+AVALANCHE: new ethers.Contract(
+            ADDRESS.AVALANCHE.AAVEDATA,
+            ABI.AAVEDATAV2,
+            PROVIDERS.AVALANCHE)
+
+
+
+}
+
 }
 
 module.exports = { CONTRACTS }

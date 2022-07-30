@@ -15,6 +15,9 @@ var emoji = require("./functions/emoji.js");
 
 dotenv.config();
 
+// override for manual draw processing
+// const drawToProcess = 276
+
 // user to receive notifiation that alerts have completed
 const userReportsId = '662117180158246926'
 
@@ -32,22 +35,21 @@ const networks = ["optimism", "polygon", "ethereum", "avalanche"]
 const cdn = {
     host: "localhost", // server name or IP address;
     port: 5432,
-    database: "pooltogether",
+    database: "prizeapi",
     user: process.env.USER,
     password: process.env.PASSWORD,
 };
 const db2 = pgp(cdn);
 async function getCurrentDraw() {
-    let queryDrawNumber = "SELECT max(draw_id) FROM draws";
+    if(typeof drawToProcess !== 'undefined') { return drawToProcess} else{
+    let queryDrawNumber = "SELECT max(draw_id) FROM prizes limit 1";
     let currentDrawNumber = await db2.any(queryDrawNumber);
-    // console.log("current draw number",currentDrawNumber)
+    console.log("current draw number",currentDrawNumber)
     let draws = currentDrawNumber[0].max;
     console.log("current draw ", draws);
-
-    // hardcode draw# - prob need to change lastAlertedDraw.txt
-    // draws = "267"
- 
-    return draws;
+	return draws;
+}
+    
 }
 
 const cn = {
