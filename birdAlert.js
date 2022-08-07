@@ -16,7 +16,7 @@ var emoji = require("./functions/emoji.js");
 dotenv.config();
 
 // override for manual draw processing
-// const drawToProcess = 276
+//  const drawToProcess = 294
 
 // user to receive notifiation that alerts have completed
 const userReportsId = '662117180158246926'
@@ -35,7 +35,7 @@ const networks = ["optimism", "polygon", "ethereum", "avalanche"]
 const cdn = {
     host: "localhost", // server name or IP address;
     port: 5432,
-    database: "prizeapi",
+    database: "pooltogether",
     user: process.env.USER,
     password: process.env.PASSWORD,
 };
@@ -105,11 +105,14 @@ async function prizes(discord, address, label, draw) {
                 let networkWins = drawResult.filter((word) => word.network === networkName);
                 networkWins = networkWins[0]
                 // *********** TODO ********* only works for prizecap of 1
-                if (networkWins) {
 
+                if (networkWins) {
+                  console.log("network wins ",networkWins)
 
                     if (networkWins.claimable_prizes.length === 1) {
-                        if (didTheyWin > 0) {
+                        
+
+if (didTheyWin > 0) {
                             prizeString += "\n";
                         }
 
@@ -131,7 +134,7 @@ async function prizes(discord, address, label, draw) {
 
 
                     }
-                    if (didTheyWin === 1) {
+                    if (didTheyWin === 1 && networkWins.claimable_prizes.length === 1) {
                         try {
                             tellUser(discord, prizeString);
                         } catch (error) { console.log(error) }
@@ -170,9 +173,8 @@ async function isNewDraw(draw) {
 async function tellUser(user, message) {
     try {
         client.users.fetch(user, false).then((user) => {
-            // console.log("USER: ",user)
             user.send(message).catch(err => console.log(err));
-            console.log(user.id," ",message)
+            console.log("tellUser (",user.id," ",message)
         });
     } catch (error) {
         console.log("could not alert user: ", error);
