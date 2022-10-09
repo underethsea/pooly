@@ -47,7 +47,7 @@ const cn = {
  async function AddWallet(discord, wallet) {
     try {
       let user = await getUser(discord);
-      if (user.length > 4 && discord != '348242214968754178' && discord != '662117180158246926') {
+      if (user.length > 9 && discord != '348242214968754178' && discord != '662117180158246926') {
         return "You have hit the maximum of 5 wallets";
       }
 /*      let polygonDelegatedBalance = await delegatedBalance(wallet, 3)
@@ -58,6 +58,16 @@ const cn = {
       ethereumDelegatedBalance = parseFloat(ethereumDelegatedBalance)
       let totalBalance = polygonDelegatedBalance + avalancheDelegatedBalance + ethereumDelegatedBalance
 */
+let checkForWalletUrl = "SELECT * FROM addresses where discord='" + discord + "'  and wallet='" + wallet + "';"
+console.log(checkForWalletUrl)
+let checkForWallet = []
+try{
+checkForWallet = await db.any(checkForWalletUrl)
+if(checkForWallet.length > 0){return "Wallet already in your =list";}
+
+}catch(error){checkForWallet = []}
+console.log(checkForWallet)
+
 let walletLabel = ""
 if ( label !== undefined) {walletLabel=label}
 let totalBalance = 4  

@@ -38,8 +38,7 @@ OPTIMISM: new ethers.Contract(
         ), OPTIMISM: new ethers.Contract(
             ADDRESS.OPTIMISM.AAVETOKEN,
             ABI.AAVE,
-            PROVIDERS.OPTIMISM
-        )
+            PROVIDERS.OPTIMISM)
     }, AAVEINCENTIVES: {
         POLYGON:
             new ethers.Contract(
@@ -54,7 +53,10 @@ OPTIMISM: new ethers.Contract(
                 ADDRESS.AVALANCHE.AAVEINCENTIVES,
                 ABI.AAVEINCENTIVES,
                 PROVIDERS.AVALANCHE
-            )
+            ),OPTIMISM: new ethers.Contract(
+                ADDRESS.OPTIMISM.AAVEINCENTIVES,
+                ABI.AAVEINCENTIVESV3,
+                PROVIDERS.OPTIMISM)
     }, PRIZETIER: {
         ETHEREUM: new ethers.Contract(
             ADDRESS.ETHEREUM.PRIZETIER,

@@ -8,9 +8,15 @@ const fetch = require("cross-fetch");
 const Discord = require("discord.js");
 const { DISCORDID } = require("./constants/discordId.js");
 const { MessageEmbed } = require("discord.js");
-const client = new Discord.Client({
-  partials: ["CHANNEL"],
-  intents: ["GUILDS", "GUILD_MESSAGES", "DIRECT_MESSAGES"],
+
+const client = new Client({
+ partials: ["CHANNEL"],
+ intents: ["GUILDS", "GUILD_MESSAGES", "DIRECT_MESSAGES"],
+/*intents: [GatewayIntentBits.Guilds,
+		GatewayIntentBits.GuildMessages,
+		GatewayIntentBits.MessageContent,
+		GatewayIntentBits.GuildMembers,]
+*/
 });
 module.exports.Client = client;
 var emoji = require("./functions/emoji.js");
@@ -33,6 +39,7 @@ const { AaveRewards } = require("./functions/aaveRewards");
 const { TvlActive } = require("./functions/tvlActive");
 const { Apr } = require("./functions/apr");
 const { Tvl } = require("./functions/tvl");
+const { Holders } = require("./functions/holders.js")
 const { SimulateApy } = require("./functions/simulateApy");
 const { Liquidity } = require("./functions/liquidity");
 const { Odds } = require("./functions/odds");
@@ -41,9 +48,12 @@ const { OpAPR } = require("./functions/opRewards");
 const { CalculatePrizeAPR } = require("./functions/calculatePrizeAPR");
 const { PrizeTier } = require("./functions/prizeTier");
 const { GetAaveRates } = require("./functions/getAaveRates");
+const { History } = require("./functions/history");
+const { Poolers } = require("./functions/poolers");
+const { Weekly } = require("./functions/weekly");
 require("./listeners/claimEvents");
-require("./listeners/withdrawEvents");
-require("./listeners/depositEvents");
+// require("./listeners/withdrawEvents");
+// require("./listeners/depositEvents");
 
 async function winners(draw) {
   let drawId = parseInt(draw);
@@ -54,7 +64,8 @@ async function winners(draw) {
 }
 
 const commas = (number) => {
-  let fixed = number.toFixed();
+number = parseFloat(number)  
+let fixed = number.toFixed();
   return fixed.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 };
 const usdc = (amount) => {
@@ -226,7 +237,7 @@ async function go() {
           }
         }
         if (
-          message.content.startsWith("pooly help") ||
+          message.content.startsWith("pooly help" || "=help") ||
           message.content.toLowerCase() === "pooly help" ||
           message.content === "=help"
         ) {
@@ -332,60 +343,168 @@ async function go() {
       if (
         message.channel.id === DISCORDID.PT.TWG ||
         message.channel.id === DISCORDID.US.TEST ||
+        message.channel.id === DISCORDID.PT.TWGPRIZE ||
         message.channel.id === DISCORDID.PT.PRIZETEAM
       ) {
+        if (message.content.startsWith("=aaverewards")) {
+          AaveRewards().then((rewardsText) => {
+            let polygonTotal = rewardsText.polygon * rewardsText.polygonPrice;
+            let avalancheTotal = rewardsText.avalanche * rewardsText.avaxPrice;
+            let ethereumTotal = rewardsText.ethereum * rewardsText.aavePrice;
+            let optimismTotal =
+              rewardsText.optimism * rewardsText.optimismPrice;
+let maticText = polygonTotal.toFixed(2) > 1 ? emoji("polygon") +
+              " " +
+              rewardsText.polygon.toFixed(2) +
+              "   MATIC     `$" +
+              polygonTotal.toFixed(2) +
+              "`\n"  : ""
+let avaxText = avalancheTotal.toFixed(2) > 1 ?   emoji("avalanche") +
+              " " +
+              rewardsText.avalanche.toFixed(2) +
+              "  AVAX    `$" +
+              avalancheTotal.toFixed(2) +
+              "`\n" : ""
+let ethText = ethereumTotal.toFixed(2) >  1 ? emoji("ethereum") +
+              " " +
+              rewardsText.ethereum.toFixed(2) +
+              "  AAVE     `$" +
+              ethereumTotal.toFixed(2) +
+              "`\n"  : ""
+let opText =  optimismTotal.toFixed(2) > 1 ? emoji("optimism") +
+              " " +
+              rewardsText.optimism.toFixed(2) +
+              "  OP     `$" +
+              optimismTotal.toFixed(2) +
+              "`" : ""
+
+            let text =
+             maticText +  avaxText + ethText + opText 
+            const rewardsEmbed = new MessageEmbed()
+              .setColor("#0099ff")
+              .setTitle("Protocol Pending Incentives")
+              .setDescription(text);
+            message.channel.send({ embeds: [rewardsEmbed] });
+          });
+        }
+ if (message.content.startsWith("=weekly")) {
+    let chainQuery = message.content.split(" ");
+       let chain = chainQuery[1];
+
+Weekly(chain).then((weekly)=>{
+message.channel.send(
+"```7 Day Report \n" + "------------\n" + 
+"Poolers".padEnd(10,' ') + commas(weekly.totalPoolers) + "\n" +
+
+"Winners".padEnd(10,' ') + commas(weekly.unique) + "\n" +
+"Wins".padEnd(10,' ') + commas(weekly.winners) + "\n" +
+
+"Claimable".padEnd(10,' ') + commas(weekly.sum) + "\n" +
+"Luckiest".padEnd(10,' ') + "Draw " + commas(weekly.luckyPooler.draw) + " Balance " + commas(weekly.luckyPooler.balance) + " Won " + commas(weekly.luckyPooler.win) +
+"```")
+
+})}
+
+ if (message.content == "=history") {
+History().then((history) => {
+let drawText = "Draw " + history.recentDrawId;
+
+message.channel.send(
+"```" + "".padEnd(7,' ') + "".padEnd(6,' ') + "Winners".padEnd(9,' ') + " | " + "Claimable".padEnd(10,' ') + " | " + "Dropped \n" +
+drawText.padEnd(13,' ') +  commas(history.recentDrawWinners).padEnd(9,' ') + " | " + commas(history.recentDrawClaimable).padEnd(10,' ') + " | " + commas(history.recentDrawDropped) + "\n"  +
+"7 day avg".padEnd(13,' ') + commas(history.sevenDayWinners).padEnd(9,' ') + " | " + commas(history.sevenDayClaimable).padEnd(10,' ') + " | " + commas(history.sevenDayDropped) + "\n" +
+"30 day avg".padEnd(13,' ') + commas(history.thirtyDayWinners).padEnd(9,' ') + " | " + commas(history.thirtyDayClaimable).padEnd(10,' ') + " | " + commas(history.thirtyDayDropped) + "\n" +
+"```")
+})
+}
+ if (message.content.startsWith("=poolers")) {
+          let addQuery = message.content.split(" ");
+          chain = addQuery[1]
+          Poolers(chain).then((poolers) => {
+ message.channel.send(
+              "```" + "< 1000".padEnd(16,' ') +
+                commas(poolers.under1000.count).padStart(8,' ') +
+                " | " +
+                commas(poolers.under1000.sum).padStart(12,' ')  +
+                " | " +
+                poolers.under1000.percentage +
+                "% \n" + 
+ "1000 - 5,000".padEnd(16,' ') +
+                commas(poolers.under5000.count).padStart(8,' ') +
+                " | " +
+                commas(poolers.under5000.sum).padStart(12,' ')  +
+                " | " +
+                poolers.under5000.percentage +
+                "% \n" + 
+ "5,000 - 25,000".padEnd(16,' ') +
+                commas(poolers.under25000.count).padStart(8,' ') +
+                " | " +
+                commas(poolers.under25000.sum).padStart(12,' ')  +
+                " | " +
+                poolers.under25000.percentage +
+                "% \n" +
+"25,000 - 100,000".padEnd(16,' ') +
+                commas(poolers.under100000.count).padStart(8,' ') +
+                " | " +
+                commas(poolers.under100000.sum).padStart(12,' ')  +
+                " | " +
+                poolers.under100000.percentage +
+                "% \n" +
+"100,000+".padEnd(16,' ') +
+                commas(poolers.over100000.count).padStart(8,' ') +
+                " | " +
+                commas(poolers.over100000.sum).padStart(12,' ')  +
+                " | " +
+                poolers.over100000.percentage +
+                "% \n" +
+
+"```") 
+
+})}
         if (message.content == "=yield") {
           GetAaveRates().then((yield) => {
-            /* const yieldEmbed = new MessageEmbed()
-        .setColor(0x0099FF)
-        .setTitle('Aave Yield')
-        .addFields(
-            { name: 'TVL', value: '3493943948' },
-            { name: 'APR', value: '100%' },
-            { name: 'PER DAY', value: '500', inline: true },
-            { name: 'new datae', value: 'ok1', inline: true },
-        )
-        .addFields({ name: 'other data', value: 'ok 2', inline: true })
-        
-   message.reply({ embeds: [yieldEmbed] });
-*/
-
+           let totalApr = ((yield.total  * 365 )/ yield.totalTvl) * 100
             message.channel.send(
-              "op: " +
-                commas(yield.optimism.tvl) +
+              "```" + "op ".padEnd(7,' ') +
+                commas(yield.optimism.tvl).padStart(15,' ') +
                 " | " +
                 yield.optimism.apr +
-                "% | ~ " +
+                "% | " +
                 yield.optimism.dayYield.toFixed(0) +
-                " per day\n" +
-                "poly: " +
-                commas(yield.polygon.tvl) +
+                " \n" +
+                "".padEnd(7,' ') + "rewards".padStart(15,' ')  + " | " +
+                yield.optimism.rewardsApr.toFixed(2) +
+                "% | " +
+                commas(
+                  (yield.optimism.rewardsApr * yield.optimism.tvl) / 100 / 365
+                ) +
+                " \n" +
+                "poly ".padEnd(7,' ') +
+                commas(yield.polygon.tvl).padStart(15,' ') +
                 " | " +
                 yield.polygon.apr +
-                "% | ~ " +
+                "% | " +
                 yield.polygon.dayYield.toFixed(0) +
-                " per day\n" +
-                "eth: " +
-                commas(yield.ethereum.tvl) +
+                " \n" +
+                "eth ".padEnd(7,' ') +
+                commas(yield.ethereum.tvl).padStart(15,' ') +
                 " | " +
                 yield.ethereum.apr +
-                "% | ~ " +
+                "% | " +
                 yield.ethereum.dayYield.toFixed(0) +
-                " per day\n" +
-                "avax: " +
-                commas(yield.avalanche.tvl) +
+                " \n" +
+                "avax ".padEnd(7,' ') +
+                commas(yield.avalanche.tvl).padStart(15,' ') +
                 " | " +
                 yield.avalanche.apr +
-                "% | ~ " +
+                "% | " +
                 yield.avalanche.dayYield.toFixed(0) +
-                " per day\n" +
-                "totals: " +
-                commas(yield.totalTvl) +
-                " | " +
-                yield.averageApr.toFixed(2) +
-                "% | ~ " +
+                " \n" +
+                "totals ".padEnd(7,' ') +
+                commas(yield.totalTvl).padStart(15,' ') +
+                " | " + totalApr.toFixed(2) +  "% | ~ " +
                 commas(yield.total) +
-                " per day "
+                " per day ```"
             );
           });
         }
@@ -399,8 +518,29 @@ async function go() {
         message.channel.id === DISCORDID.PT.BOT ||
         message.channel.id === DISCORDID.PT.EXECUTIVE ||
         message.channel.id === DISCORDID.US.TEST ||
-        message.channel.id === DISCORDID.US.NFT
+        message.channel.id === DISCORDID.US.NFT ||
+        message.channel.id === DISCORDID.OTHER.L2DAO
+
       ) {
+if (message.content.startsWith("=weekly")) {
+  let chainQuery = message.content.split(" ");
+         let  chain = chainQuery[1];
+
+
+Weekly(chain).then((weekly)=>{
+message.channel.send(
+"```7 Day Report \n" + "------------\n" + 
+"Poolers".padEnd(10,' ') + commas(weekly.totalPoolers) + "\n" +
+
+"Winners".padEnd(10,' ') + commas(weekly.unique) + "\n" +
+"Wins".padEnd(10,' ') + commas(weekly.winners) + "\n" +
+
+"Claimable".padEnd(10,' ') + commas(weekly.sum) + "\n" +
+"Luckiest".padEnd(10,' ') + "Draw " + commas(weekly.luckyPooler.draw) + " Balance " + commas(weekly.luckyPooler.balance) + " Won " + commas(weekly.luckyPooler.win) +
+"```")
+
+})}
+
         if (message.content.startsWith("=add")) {
           message.reply("Send me a DM to use `=add` my friend");
         }
@@ -570,108 +710,56 @@ async function go() {
             });
           }
         }
-        // if (message.content.startsWith("=ptip66a")) {
-        //   let apyQuery = message.content.split(" ");
-        //   amount = apyQuery[1];
-        //   if (amount < 2 || amount > 20000000) {
-        //     message.reply("What amount is that friend?");
-        //   } else {
-        //     optionA(amount, 30000000, 0.05).then((apyText) => {
-        //       let simulateText =
-        //         "<:TokenUSDC:823404729634652220> DEPOSIT `" +
-        //         Commas(parseFloat(amount)) +
-        //         "`\n:calendar_spiral: APR Range `" +
-        //         apyText.unlucky +
-        //         "% - " +
-        //         apyText.lucky +
-        //         "%`\n:scales: Average `" +
-        //         apyText.average +
-        //         "%`\n:first_place: Avg 1st prize day `" +
-        //         apyText.firstPrizeDay +
-        //         "`\n\n*Results out of 100 Simulations*";
-        //       apyText.lucky
-
-        //       const simulateEmbed = new MessageEmbed()
-        //         .setColor("#0099ff")
-        //         .setTitle("Prize Simulator - PTIP-66 Option A")
-        //         .setDescription(simulateText);
-
-        //       message.reply({ embeds: [simulateEmbed] });
-        //     });
-        //   }
-        // }
-
-        // if (message.content.startsWith("=ptip66b")) {
-        //   let apyQuery = message.content.split(" ");
-        //   amount = apyQuery[1];
-        //   if (amount < 2 || amount > 20000000) {
-        //     message.reply("What amount is that friend?");
-        //   } else {
-        //     optionB(amount, 30000000, 0.05).then((apyText) => {
-        //       let simulateText =
-        //         "<:TokenUSDC:823404729634652220> DEPOSIT `" +
-        //         Commas(parseFloat(amount)) +
-        //         "`\n:calendar_spiral: APR Range `" +
-        //         apyText.unlucky +
-        //         "% - " +
-        //         apyText.lucky +
-        //         "%`\n:scales: Average `" +
-        //         apyText.average +
-        //         "%`\n:first_place: Avg 1st prize day `" +
-        //         apyText.firstPrizeDay +
-        //         "`\n\n*Results out of 100 Simulations*";
-        //       const simulateEmbed = new MessageEmbed()
-        //         .setColor("#0099ff")
-        //         .setTitle("Prize Simulator - PTIP-66 Option B")
-        //         .setDescription(simulateText);
-
-        //       message.reply({ embeds: [simulateEmbed] });
-        //     });
-        //   }
-        // }
         if (message.content == "=apr op") {
           OpAPR().then((aprText) => {
             message.channel.send("apr: " + aprText + "%");
           });
         }
+
         if (message.content == "=yield") {
           GetAaveRates().then((yield) => {
+
             message.channel.send(
-              "op: " +
-                commas(yield.optimism.tvl) +
+                "```" + "op ".padEnd(7,' ') +
+                commas(yield.optimism.tvl).padStart(15,' ') +
                 " | " +
                 yield.optimism.apr +
-                "% | ~ " +
+                "% | " +
                 yield.optimism.dayYield.toFixed(0) +
-                " per day\n" +
-                "poly: " +
-                commas(yield.polygon.tvl) +
+                " \n" +
+                "".padEnd(7,' ') + "rewards".padStart(15,' ')  + " | " +
+                yield.optimism.rewardsApr.toFixed(2) +
+                "% | " +
+                commas(
+                  (yield.optimism.rewardsApr * yield.optimism.tvl) / 100 / 365
+                ) +
+                " \n" +
+                "poly ".padEnd(7,' ') +
+                commas(yield.polygon.tvl).padStart(15,' ') +
                 " | " +
                 yield.polygon.apr +
-                "% | ~ " +
+                "% | " +
                 yield.polygon.dayYield.toFixed(0) +
-                " per day\n" +
-                "eth: " +
-                commas(yield.ethereum.tvl) +
+                " \n" +
+                "eth ".padEnd(7,' ') +
+                commas(yield.ethereum.tvl).padStart(15,' ') +
                 " | " +
                 yield.ethereum.apr +
-                "% | ~ " +
+                "% | " +
                 yield.ethereum.dayYield.toFixed(0) +
-                " per day\n" +
-                "avax: " +
-                commas(yield.avalanche.tvl) +
+                " \n" +
+                "avax ".padEnd(7,' ') +
+                commas(yield.avalanche.tvl).padStart(15,' ') +
                 " | " +
                 yield.avalanche.apr +
-                "% | ~ " +
+                "% | " +
                 yield.avalanche.dayYield.toFixed(0) +
-                " per day\n" +
-                "totals: " +
-                commas(yield.totalTvl) +
-                " | " +
-                yield.averageApr.toFixed(2) +
-                "% | ~ " +
+                " \n" +
+                "totals ".padEnd(7,' ') +
+                commas(yield.totalTvl).padStart(15,' ') +
+                " | ----- | ~ " +
                 commas(yield.total) +
-                " per day "
+                " per day ```"
             );
           });
         }
@@ -681,7 +769,37 @@ async function go() {
             let polygonTotal = rewardsText.polygon * rewardsText.polygonPrice;
             let avalancheTotal = rewardsText.avalanche * rewardsText.avaxPrice;
             let ethereumTotal = rewardsText.ethereum * rewardsText.aavePrice;
+            let optimismTotal =
+              rewardsText.optimism * rewardsText.optimismPrice;
+let maticText = polygonTotal.toFixed(2) > 1 ? emoji("polygon") +
+              " " +
+              rewardsText.polygon.toFixed(2) +
+              "   MATIC     `$" +
+              polygonTotal.toFixed(2) +
+              "`\n"  : ""
+let avaxText = avalancheTotal.toFixed(2) > 1 ?   emoji("avalanche") +
+              " " +
+              rewardsText.avalanche.toFixed(2) +
+              "  AVAX    `$" +
+              avalancheTotal.toFixed(2) +
+              "`\n" : ""
+let ethText = ethereumTotal.toFixed(2) >  1 ? emoji("ethereum") +
+              " " +
+              rewardsText.ethereum.toFixed(2) +
+              "  AAVE     `$" +
+              ethereumTotal.toFixed(2) +
+              "`\n"  : ""
+let opText =  optimismTotal.toFixed(2) > 1 ? emoji("optimism") +
+              " " +
+              rewardsText.optimism.toFixed(2) +
+              "  OP     `$" +
+              optimismTotal.toFixed(2) +
+              "`" : ""
+
             let text =
+             maticText +  avaxText + ethText + opText 
+
+/*            let text =
               emoji("polygon") +
               " " +
               rewardsText.polygon.toFixed(2) +
@@ -699,8 +817,14 @@ async function go() {
               rewardsText.ethereum.toFixed(2) +
               "  AAVE     `$" +
               ethereumTotal.toFixed(2) +
+              "`\n" +
+              emoji("optimism") +
+              " " +
+              rewardsText.optimism.toFixed(2) +
+              "  OP     `$" +
+              optimismTotal.toFixed(2) +
               "`";
-
+*/
             const rewardsEmbed = new MessageEmbed()
               .setColor("#0099ff")
               .setTitle("Protocol Pending Incentives")
@@ -738,6 +862,11 @@ async function go() {
         }
         if (message.content === "=tvl") {
           Tvl().then((tvlText) => message.channel.send({ embeds: [tvlText] }));
+        }
+        if (message.content.startsWith("=holders")) {
+        let addQuery = message.content.split(" ");
+          threshold = addQuery[1]  
+        Holders(threshold).then((holdersText) => message.channel.send({ embeds: [holdersText] }));
         }
         if (message.content === "=tvl active") {
           TvlActive().then((tvlActiveAmt) => {
@@ -990,7 +1119,7 @@ async function go() {
           .addField("\u200B", footerText);
 
         // .addField('', '', true)
-        if (message.content.startsWith("pooly help")) {
+        if (message.content.startsWith("pooly help") || message.content === "=help") {
           message.channel.send({ embeds: [exampleEmbed] });
         }
       }

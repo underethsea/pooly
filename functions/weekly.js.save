@@ -1,0 +1,45 @@
+const fetch = require("cross-fetch")
+
+const chains = [1,137
+async function weekly() {
+    let url = "https://poolexplorer.xyz/history"
+
+    let historyFetch = await fetch(url)
+    historyFetch = await historyFetch.json()
+    let recentDrawIndex = historyFetch.length - 1 
+    
+    let sevenDayClaimable = 0
+    let sevenDayUnique = 0
+    let luckiestRatio = 0
+    let luckyPooler = {draw: 0,balance: 0,win: 0}
+let uniquePoolers = []   
+let sevenDaysOfDraws = [] 
+for ( x = recentDrawIndex -  6;x <= recentDrawIndex;x++){
+     let draw = x+1
+     let url = "https://poolexplorer.xyz/draw" + draw
+     let drawFetch = await fetch(url)
+     drawFetch = await drawFetch.json()
+     Array.prototype.push.apply(sevenDaysOfDraws,drawFetch)
+}
+console.log(sevenDaysOfDraws[0])
+console.log(sevenDaysOfDraws[1])
+console.log(sevenDaysOfDraws[2])
+
+sevenDaysOfDraws.forEach(pooler=>{
+    if(uniquePoolers.indexOf(pooler.a) === -1) {
+        uniquePoolers.push(pooler.a);      
+    }
+    sevenDayClaimable += parseFloat(pooler.w)
+    luckyRatio = parseFloat(pooler.w) /  pooler.g  
+    if(luckyRatio > luckiestRatio) {
+        luckiestRatio = luckyRatio;
+        luckyPooler = {draw:x,balance:pooler.g,win:pooler.w}
+    }
+})
+console.log("unique 7day winners: ",uniquePoolers.length)
+console.log("seven day claimable ",sevenDayClaimable)
+console.log("luckiest",luckyPooler)
+return {unique:uniquePoolers.length,sum:sevenDayClaimable,luckyPooler:luckyPooler }
+}
+weekly()
+module.exports.Weekly = weekly

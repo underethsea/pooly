@@ -11,6 +11,7 @@ async function wins(address) {
       let polygonWins = {};
       let avalancheWins = {};
       let ethereumWins = {};
+      let optimismWins = {};
       try {
         polygonWins = drawResult.filter((word) => word.network === "polygon");
       } catch (error) {
@@ -26,6 +27,12 @@ async function wins(address) {
       } catch (error) {
         console.log(error);
       }
+ try {
+        optimismWins = drawResult.filter((word) => word.network === "optimism");
+      } catch (error) {
+        console.log(error);
+      }
+
       let winsString = "WINS || `" + address.substring(0, 5) + "`    ";
       if (polygonWins.length > 0) {
         let winsCount = 0;
@@ -53,6 +60,20 @@ async function wins(address) {
           winsString += "  No wins yet my friend, your time will come.";
         }
       }
+if (optimismWins.length > 0) {
+        let winsCount = 0;
+        winsString += "    " + emoji("optimism");
+        optimismWins.forEach((entry) => {
+          if (entry.claimable_prizes && entry.claimable_prizes.length > 0) {
+            winsCount += 1;
+            winsString += "   " + entry.draw_id;
+          }
+        });
+        if (winsCount === 0) {
+          winsString += "  No wins yet my friend, your time will come.";
+        }
+      }
+
       if (ethereumWins.length > 0) {
         let winsCount = 0;
         winsString += "    " + emoji("ethereum");

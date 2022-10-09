@@ -5,6 +5,8 @@
     const usdcEmoji = "823404729634652220";
     const trophyEmoji = "780567510915219476";
     const opEmoji = "989110966543343616"
+    const poolEmoji = "819015792480747520"
+    const parrotEmoji = "789986418356387870"
     module.exports = function emoji(name) {
         let emojiString = "";
         if (name === "polygon" || name.toString() === "3") {
@@ -26,6 +28,14 @@ if (name === "optimism" || name.toString() === "6") {
         if (name === "trophy") {
             emojiString = "<:TrophyETH:" + trophyEmoji + ">";
         }
+ if (name === "pool") {
+            emojiString = "<:TokenPOOL:" + poolEmoji + ">";
+        }
+if (name === "poolyAttention") {
+            emojiString = "<:Parrot:" + parrotEmoji + ">";
+        }
+
+
         return emojiString;
 
         }
