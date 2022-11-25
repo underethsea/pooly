@@ -51,6 +51,7 @@ const { GetAaveRates } = require("./functions/getAaveRates");
 const { History } = require("./functions/history");
 const { Poolers } = require("./functions/poolers");
 const { Weekly } = require("./functions/weekly");
+const { WinnerByDeposit } = require("./functions/winnerByDeposit");
 require("./listeners/claimEvents");
 // require("./listeners/withdrawEvents");
 // require("./listeners/depositEvents");
@@ -335,6 +336,17 @@ async function go() {
       // ================================================= //
 
       if (message.channel.id === DISCORDID.PT.TWG) {
+if(message.content.startsWith("=hello?")){console.log("yes")}
+if (message.content.startsWith("=winnerbreakdown")){
+ let drawQuery = message.content.split(" ");
+         let  drawStart = parseInt(drawQuery[1]);
+let drawStop = parseInt(drawQuery[2]);
+console.log(drawStart," - ",drawStop)
+WinnerByDeposit(drawStart,drawStop).then((returnMsg)=>{
+
+message.channel.send(returnMsg)})
+}
+
         if (message.content === "=pol") {
           GetLp().then((lpText) => message.reply({ embeds: [lpText] }));
         }
@@ -404,6 +416,15 @@ message.channel.send(
 "```")
 
 })}
+if (message.content.startsWith("=winnerbreakdown")){
+ let drawQuery = message.content.split(" ");
+         let  drawStart = parseInt(drawQuery[1]);
+let drawStop = parseInt(drawQuery[2]);
+console.log(drawStart," - ",drawStop)
+WinnerByDeposit(drawStart,drawStop).then((returnMsg)=>{
+
+message.channel.send(returnMsg)})
+}
 
  if (message.content == "=history") {
 History().then((history) => {
@@ -425,6 +446,8 @@ drawText.padEnd(13,' ') +  commas(history.recentDrawWinners).padEnd(9,' ') + " |
               "```" + "< 1000".padEnd(16,' ') +
                 commas(poolers.under1000.count).padStart(8,' ') +
                 " | " +
+		poolers.under1000.countRatio.padStart(6,' ') + "%" +
+                " | " + 
                 commas(poolers.under1000.sum).padStart(12,' ')  +
                 " | " +
                 poolers.under1000.percentage +
@@ -432,6 +455,8 @@ drawText.padEnd(13,' ') +  commas(history.recentDrawWinners).padEnd(9,' ') + " |
  "1000 - 5,000".padEnd(16,' ') +
                 commas(poolers.under5000.count).padStart(8,' ') +
                 " | " +
+                poolers.under5000.countRatio.padStart(6,' ') + "%" +
+                " | " +  
                 commas(poolers.under5000.sum).padStart(12,' ')  +
                 " | " +
                 poolers.under5000.percentage +
@@ -439,13 +464,18 @@ drawText.padEnd(13,' ') +  commas(history.recentDrawWinners).padEnd(9,' ') + " |
  "5,000 - 25,000".padEnd(16,' ') +
                 commas(poolers.under25000.count).padStart(8,' ') +
                 " | " +
+                poolers.under25000.countRatio.padStart(6,' ') + "%" +
+                " | " +  
                 commas(poolers.under25000.sum).padStart(12,' ')  +
                 " | " +
                 poolers.under25000.percentage +
                 "% \n" +
+               
 "25,000 - 100,000".padEnd(16,' ') +
                 commas(poolers.under100000.count).padStart(8,' ') +
                 " | " +
+                poolers.under100000.countRatio.padStart(6,' ') + "%" +
+                " | " +  
                 commas(poolers.under100000.sum).padStart(12,' ')  +
                 " | " +
                 poolers.under100000.percentage +
@@ -453,6 +483,8 @@ drawText.padEnd(13,' ') +  commas(history.recentDrawWinners).padEnd(9,' ') + " |
 "100,000+".padEnd(16,' ') +
                 commas(poolers.over100000.count).padStart(8,' ') +
                 " | " +
+                poolers.over100000.countRatio.padStart(6,' ') + "%" +
+                " | " +  
                 commas(poolers.over100000.sum).padStart(12,' ')  +
                 " | " +
                 poolers.over100000.percentage +
@@ -460,7 +492,15 @@ drawText.padEnd(13,' ') +  commas(history.recentDrawWinners).padEnd(9,' ') + " |
 
 "```") 
 
-})}
+})}if (message.content == "=winnerbreakdown"){
+ let drawQuery = message.content.split(" ");
+         let  drawStart = parseInt(drawQuery[1]);
+let drawStop = parseInt(drawQuery[2]);
+
+WinnerByDeposit(drawStart,drawStop).then((returnMsg)=>{
+
+message.channel.send(returnMsg)})
+}
         if (message.content == "=yield") {
           GetAaveRates().then((yield) => {
            let totalApr = ((yield.total  * 365 )/ yield.totalTvl) * 100

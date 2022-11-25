@@ -17,7 +17,7 @@
     dotenv.config();
 
     // override for manual draw processing
-//    const drawToProcess = 356
+   // const drawToProcess = 403
     // blackList for addresses to not alert - array of strings!
 const tempBlacklist = []
     // user to receive notifiation that alerts have completed
@@ -30,7 +30,8 @@ const tempBlacklist = []
 
     const fourteenUsdc = (amount) => {
         let newNum = amount / 1e14;
-        return newNum.toFixed();
+if(newNum < 1){return newNum.toFixed(2)}        
+else{return newNum.toFixed();}
     };
 
     const networks = ["optimism", "polygon", "ethereum", "avalanche"]
@@ -89,7 +90,7 @@ const tempBlacklist = []
         // black list for disabling alerts per address
         let labelString = ""
         label !== null & label !== "" ? labelString += " `" + label + "`" : ""
-        if (tempBlacklist.includes(address)) { console.log("skipped", address) } else {
+        if (tempBlacklist.includes(parseInt(discord))) { console.log("skipped", discord) } else {
             try {
                 // console.log("address", address, "draw", draw);
                 drawId = parseInt(draw);

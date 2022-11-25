@@ -43,13 +43,13 @@ console.log("under 5k ",under5000.length," sum ",under5000Sum.toFixed(0)," ",und
 console.log("under 25k ",under25000.length," sum ",under25000Sum.toFixed(0)," ",under25000Percentage.toFixed(2),"%")
 console.log("under 100k ",under100000.length," sum ",under100000Sum.toFixed(0)," ",under100000Percentage.toFixed(2),"%")
 console.log("over 100k ",over100000.length," sum ",over100000Sum.toFixed(0)," ",over100000Percentage.toFixed(2),"%")
-
+let totalPoolers =  under1000.length + under5000.length+under25000.length+under100000.length+over100000.length
 return {
-under1000: {count: under1000.length, sum: under1000Sum.toFixed(0), percentage: under1000Percentage.toFixed(2)},
-under5000: {count: under5000.length, sum: under5000Sum.toFixed(0), percentage: under5000Percentage.toFixed(2)},
-under25000: {count: under25000.length, sum: under25000Sum.toFixed(0), percentage: under25000Percentage.toFixed(2)},
-under100000: {count: under100000.length, sum: under100000Sum.toFixed(0), percentage: under100000Percentage.toFixed(2)},
-over100000: {count: over100000.length, sum: over100000Sum.toFixed(0), percentage: over100000Percentage.toFixed(2)},
+under1000: {count: under1000.length, countRatio: (under1000.length / totalPoolers * 100).toFixed(0),sum: under1000Sum.toFixed(0), percentage: under1000Percentage.toFixed(2)},
+under5000: {count: under5000.length,  countRatio: (under5000.length / totalPoolers * 100).toFixed(0),sum: under5000Sum.toFixed(0), percentage: under5000Percentage.toFixed(2)},
+under25000: {count: under25000.length,  countRatio: (under25000.length / totalPoolers * 100).toFixed(0),sum: under25000Sum.toFixed(0), percentage: under25000Percentage.toFixed(2)},
+under100000: {count: under100000.length,  countRatio: (under100000.length / totalPoolers * 100).toFixed(0),sum: under100000Sum.toFixed(0), percentage: under100000Percentage.toFixed(2)},
+over100000: {count: over100000.length,  countRatio: (over100000.length / totalPoolers * 100).toFixed(0),sum: over100000Sum.toFixed(0), percentage: over100000Percentage.toFixed(2)},
 
 }
 // console.log("under 1k ",under1000.length)

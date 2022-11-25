@@ -66,8 +66,8 @@ let optimismRate = optimismLendingRate[5] / 1e25;
       optimismDailyYield +
       ethereumDailyYield +
       polygonDailyYield +
-      avalancheDailyYield +
-      opRewardsDailyYield,
+      avalancheDailyYield,
+      // opRewardsDailyYield,
     totalTvl: tvl.optimism + tvl.ethereum + tvl.polygon + tvl.avalanche,
     averageApr:
       (optimismRate + ethereumRate + polygonRate + avalancheRate) / 4,
@@ -75,9 +75,12 @@ let optimismRate = optimismLendingRate[5] / 1e25;
       apr: optimismRate.toFixed(2),
       dayYield: optimismDailyYield,
       tvl: tvl.optimism,
-      rewardsPerDay: tvl.optimism / opATokens * opPerDay, 
-      rewardsValuePerDay: opRewardsDailyYield,
-      rewardsApr: opYieldPerDay * 365,
+      rewardsPerDay: 0,
+      rewardsValuePerDay: 0,
+      rewardsApr: 0,
+      // rewardsPerDay: tvl.optimism / opATokens * opPerDay, 
+      // rewardsValuePerDay: opRewardsDailyYield,
+      // rewardsApr: opYieldPerDay * 365,
     },
     ethereum: {
       apr: ethereumRate.toFixed(2),

@@ -1,4 +1,5 @@
 const fetch = require("cross-fetch")
+const luckyThreshold = 200
 async function weekly(chain) {
 if(chain === undefined ){chain = undefined}  
 else if (chain == "1" || chain.startsWith("eth")) { chain = "1" }
@@ -37,6 +38,7 @@ for ( x = recentDrawIndex -  6;x <= recentDrawIndex;x++){
      let url = "https://poolexplorer.xyz/draw" + draw
      let drawFetch = await fetch(url)
      drawFetch = await drawFetch.json()
+     drawFetch.forEach(win => win.draw = draw)
      Array.prototype.push.apply(sevenDaysOfDraws,drawFetch)
 }
 
@@ -46,9 +48,9 @@ sevenDaysOfDraws.forEach(pooler=>{
     }
     sevenDayClaimable += parseFloat(pooler.w)
     luckyRatio = parseFloat(pooler.w) /  pooler.g  
-    if(luckyRatio > luckiestRatio) {
+    if(luckyRatio > luckiestRatio && parseInt(pooler.w) >= luckyThreshold) {
         luckiestRatio = luckyRatio;
-        luckyPooler = {draw:x,balance:pooler.g,win:pooler.w}
+        luckyPooler = {draw:pooler.draw,balance:pooler.g,win:pooler.w}
     }
 })
 console.log("unique 7day winners: ",uniquePoolers.length)
