@@ -60,12 +60,12 @@ OPTIMISM: new ethers.Contract(
     }, PRIZETIER: {
         ETHEREUM: new ethers.Contract(
             ADDRESS.ETHEREUM.PRIZETIER,
-            ABI.PRIZETIER,
+            ABI.PRIZETIERV2,
             PROVIDERS.ETHEREUM
         ),
         AVALANCHE: new ethers.Contract(
             ADDRESS.AVALANCHE.PRIZETIER,
-            ABI.PRIZETIER,
+            ABI.PRIZETIERV2,
             PROVIDERS.AVALANCHE
         ),
         OPTIMISM: new ethers.Contract(
@@ -74,7 +74,7 @@ OPTIMISM: new ethers.Contract(
             PROVIDERS.OPTIMISM
         ), POLYGON: new ethers.Contract(
             ADDRESS.POLYGON.PRIZETIER,
-            ABI.PRIZETIER,
+            ABI.PRIZETIERV2,
             PROVIDERS.POLYGON
         )
     }, AAVEDATA: {

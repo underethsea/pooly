@@ -2,7 +2,7 @@ const {GeckoPrice} = require("./geckoFetch")
 const {TvlActive} = require("./tvlActive")
 
 
-const rewardsPerWeek = 25000 
+const rewardsPerWeek = 20000 
 async function opAPR () {
 
 

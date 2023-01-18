@@ -52,6 +52,8 @@ const { History } = require("./functions/history");
 const { Poolers } = require("./functions/poolers");
 const { Weekly } = require("./functions/weekly");
 const { WinnerByDeposit } = require("./functions/winnerByDeposit");
+const { DprCheck } = require("./functions/dprCheck")
+
 require("./listeners/claimEvents");
 // require("./listeners/withdrawEvents");
 // require("./listeners/depositEvents");
@@ -281,8 +283,11 @@ async function go() {
           let oddsQuery = message.content.split(" ");
           amount = oddsQuery[1];
           let chainInput = oddsQuery[2];
+          let newMoney = false
+          if(oddsQuery[3] === "new") {newMoney = true}
           console.log(chainInput);
-          Odds(amount, chainInput).then((oddsText) => {
+          console.log("new money",newMoney,oddsQuery[3])
+          Odds(amount, chainInput, newMoney).then((oddsText) => {
             const oddsEmbed = new MessageEmbed()
               .setColor("#0099ff")
               .setTitle(
@@ -335,7 +340,7 @@ async function go() {
       //             TWG COMMANDS                          //
       // ================================================= //
 
-      if (message.channel.id === DISCORDID.PT.TWG) {
+      if (message.channel.id === DISCORDID.PT.TWG || message.channel.id === DISCORDID.PT.FINANCE) {
 if(message.content.startsWith("=hello?")){console.log("yes")}
 if (message.content.startsWith("=winnerbreakdown")){
  let drawQuery = message.content.split(" ");
@@ -443,7 +448,39 @@ drawText.padEnd(13,' ') +  commas(history.recentDrawWinners).padEnd(9,' ') + " |
           chain = addQuery[1]
           Poolers(chain).then((poolers) => {
  message.channel.send(
-              "```" + "< 1000".padEnd(16,' ') +
+              "```" +
+		"Deposit".padEnd(16,' ') +  "Poolers     ".padStart(18,' ') +  " | " + "     TVL" + "\n" + "-------------------------------------------------------------" + "\n" +
+"< 6".padEnd(16,' ') +
+                commas(poolers.under6.count).padStart(8,' ') +
+                " | " +
+                poolers.under6.countRatio.padStart(6,' ') + "%" +
+                " | " + 
+                commas(poolers.under6.sum).padStart(12,' ')  +
+                " | " +
+                poolers.under6.percentage +
+                "% \n" + 
+
+"6 - 30".padEnd(16,' ') +
+                commas(poolers.under30.count).padStart(8,' ') +
+                " | " +
+                poolers.under30.countRatio.padStart(6,' ') + "%" +
+                " | " + 
+                commas(poolers.under30.sum).padStart(12,' ')  +
+                " | " +
+                poolers.under30.percentage +
+                "% \n" +                 
+
+"3 - 100".padEnd(16,' ') +
+                commas(poolers.under100.count).padStart(8,' ') +
+                " | " +
+                poolers.under100.countRatio.padStart(6,' ') + "%" +
+                " | " + 
+                commas(poolers.under100.sum).padStart(12,' ')  +
+                " | " +
+                poolers.under100.percentage +
+                "% \n" + 
+		
+"100 - 1000".padEnd(16,' ') +
                 commas(poolers.under1000.count).padStart(8,' ') +
                 " | " +
 		poolers.under1000.countRatio.padStart(6,' ') + "%" +
@@ -501,6 +538,30 @@ WinnerByDeposit(drawStart,drawStop).then((returnMsg)=>{
 
 message.channel.send(returnMsg)})
 }
+        if (message.content == "=dprcheck") {
+DprCheck().then((returned) => {
+console.log(returned)
+let infoString = "```CHAIN | TVL ACTIVE  | PRIZE  | YIELD | SUBSIDY\n";
+
+for (const result in returned) {
+
+ console.log("heres ones",result)
+        infoString +=
+          result.substring(0,3).padEnd(5,' ') +
+          " | " +
+          returned[result].tvl.padEnd(11,' ') +
+          " | " +
+          returned[result].prize.padStart(6, ' ' ) +
+          " | " +
+          returned[result].yield.padStart(5, ' ' ) +
+          " | " +
+          returned[result].subsidy.padEnd(5, ' ' ) +
+          "\n";
+        }
+
+message.channel.send(infoString+"```")})
+}
+
         if (message.content == "=yield") {
           GetAaveRates().then((yield) => {
            let totalApr = ((yield.total  * 365 )/ yield.totalTvl) * 100
@@ -559,8 +620,8 @@ message.channel.send(returnMsg)})
         message.channel.id === DISCORDID.PT.EXECUTIVE ||
         message.channel.id === DISCORDID.US.TEST ||
         message.channel.id === DISCORDID.US.NFT ||
-        message.channel.id === DISCORDID.OTHER.L2DAO
-
+        message.channel.id === DISCORDID.OTHER.L2DAO ||
+        message.channel.id === DISCORDID.PT.FINANCE
       ) {
 if (message.content.startsWith("=weekly")) {
   let chainQuery = message.content.split(" ");
@@ -580,6 +641,92 @@ message.channel.send(
 "```")
 
 })}
+ if (message.content.startsWith("=poolers")) {
+          let addQuery = message.content.split(" ");
+          chain = addQuery[1]
+          Poolers(chain).then((poolers) => {
+ message.channel.send(
+              "```" +
+                "Deposit".padEnd(16,' ') +  "Poolers     ".padStart(18,' ') +  " | " + "     TVL" + "\n" + "-------------------------------------------------------------" + "\n" +
+  "< 6".padEnd(16,' ') +
+                commas(poolers.under6.count).padStart(8,' ') +
+                " | " +
+                poolers.under6.countRatio.padStart(6,' ') + "%" +
+                " | " + 
+                commas(poolers.under6.sum).padStart(12,' ')  +
+                " | " +
+                poolers.under6.percentage +
+                "% \n" + 
+
+"6 - 30".padEnd(16,' ') +
+                commas(poolers.under30.count).padStart(8,' ') +
+                " | " +
+                poolers.under30.countRatio.padStart(6,' ') + "%" +
+                " | " + 
+                commas(poolers.under30.sum).padStart(12,' ')  +
+                " | " +
+                poolers.under30.percentage +
+                "% \n" +                 
+
+"3 - 100".padEnd(16,' ') +
+                commas(poolers.under100.count).padStart(8,' ') +
+                " | " +
+                poolers.under100.countRatio.padStart(6,' ') + "%" +
+                " | " + 
+                commas(poolers.under100.sum).padStart(12,' ')  +
+                " | " +
+                poolers.under100.percentage +
+                "% \n" + 
+              
+
+"100 - 1000".padEnd(16,' ') +
+                commas(poolers.under1000.count).padStart(8,' ') +
+                " | " +
+                poolers.under1000.countRatio.padStart(6,' ') + "%" +
+                " | " + 
+                commas(poolers.under1000.sum).padStart(12,' ')  +
+                " | " +
+                poolers.under1000.percentage +
+                "% \n" + 
+ "1000 - 5,000".padEnd(16,' ') +
+                commas(poolers.under5000.count).padStart(8,' ') +
+                " | " +
+                poolers.under5000.countRatio.padStart(6,' ') + "%" +
+                " | " +  
+                commas(poolers.under5000.sum).padStart(12,' ')  +
+                " | " +
+                poolers.under5000.percentage +
+                "% \n" + 
+ "5,000 - 25,000".padEnd(16,' ') +
+                commas(poolers.under25000.count).padStart(8,' ') +
+                " | " +
+                poolers.under25000.countRatio.padStart(6,' ') + "%" +
+                " | " +  
+                commas(poolers.under25000.sum).padStart(12,' ')  +
+                " | " +
+                poolers.under25000.percentage +
+                "% \n" +
+               
+"25,000 - 100,000".padEnd(16,' ') +
+                commas(poolers.under100000.count).padStart(8,' ') +
+                " | " +
+                poolers.under100000.countRatio.padStart(6,' ') + "%" +
+                " | " +  
+                commas(poolers.under100000.sum).padStart(12,' ')  +
+                " | " +
+                poolers.under100000.percentage +
+                "% \n" +
+"100,000+".padEnd(16,' ') +
+                commas(poolers.over100000.count).padStart(8,' ') +
+                " | " +
+                poolers.over100000.countRatio.padStart(6,' ') + "%" +
+                " | " +  
+                commas(poolers.over100000.sum).padStart(12,' ')  +
+                " | " +
+                poolers.over100000.percentage +
+                "% \n" +
+
+"```") })}
 
         if (message.content.startsWith("=add")) {
           message.reply("Send me a DM to use `=add` my friend");
@@ -1089,7 +1236,9 @@ let opText =  optimismTotal.toFixed(2) > 1 ? emoji("optimism") +
           let oddsQuery = message.content.split(" ");
           amount = oddsQuery[1];
           let chainInput = oddsQuery[2];
-          Odds(amount, chainInput).then((oddsText) => {
+let newMoney = false
+          if(oddsQuery[3] === "new") {newMoney = true}
+          Odds(amount, chainInput,newMoney).then((oddsText) => {
             const oddsEmbed = new MessageEmbed()
               .setColor("#0099ff")
               .setTitle(
