@@ -15,17 +15,24 @@ chainName = "AVALANCHE"}
 if(chain === 6) {
 chainName = "OPTIMISM"}
 
-    let newestDrawId = await CONTRACTS.PRIZETIER[chainName].getNewestDrawId()
+    let newestDrawId = await CONTRACTS.BEACON[chainName].getNextDrawId()
     newestDrawId = parseInt(newestDrawId)
     console.log(newestDrawId)
     let getPrizeTier = await CONTRACTS.PRIZETIER[chainName].getPrizeTier(newestDrawId)
     console.log(getPrizeTier)
-    let dpr = getPrizeTier[5] / 1e9
+let dpr = 0
+let totalPrize = 0
+let tierPercentages = 0 
+   
+
+    dpr = getPrizeTier[5] / 1e9
     console.log("dpr",dpr)
-    let totalPrize = getPrizeTier[6] / 1e6
+console.log("total prize array 6:",getPrizeTier[6])    
+totalPrize = getPrizeTier[6] / 1e6
     console.log(totalPrize)
-    let tierPercentages = getPrizeTier[7]
-    let tierPrizes = []
+    tierPercentages = getPrizeTier[7]
+
+ let tierPrizes = []
 	let index = 0
     tierPercentages.forEach(percentage =>{
 let tierPrize = (percentage / 1e9 /  TierPrizes[index]) * totalPrize

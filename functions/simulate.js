@@ -3,6 +3,7 @@ const simulationDays = 365;
 
 
 function simulate(deposit,scalingVariable,totalPrizes,dailyProbWin,tierPrizesAfterGas,tierNumPrizes) {
+return 0;
     let prizes = [];
     for (let draw = 0; draw < Math.trunc(deposit/scalingVariable); draw++) {
         for (let tier in tierNumPrizes) {

@@ -4,6 +4,15 @@ const { ADDRESS } = require("./address.js");
 const { PROVIDERS } = require("./providers.js")
 
 const CONTRACTS = {
+BEACON: {
+POLYGON: new ethers.Contract(ADDRESS.POLYGON.BEACON,ABI.BEACON,PROVIDERS.POLYGON),
+ETHEREUM: new ethers.Contract(ADDRESS.ETHEREUM.BEACON,ABI.BEACON,PROVIDERS.ETHEREUM),
+AVALANCHE: new ethers.Contract(ADDRESS.ETHEREUM.BEACON,ABI.BEACON,PROVIDERS.ETHEREUM),
+// AVALANCHE: new ethers.Contract(ADDRESS.AVALANCHE.BEACON,ABI.BEACON,PROVIDERS.AVALANCHE),
+//  OP AND AVAX HACK - -- - USSES MAINNET BECAUSE OP NO BEACON!!!!!!
+OPTIMISM: new ethers.Contract(ADDRESS.ETHEREUM.BEACON,ABI.BEACON,PROVIDERS.ETHEREUM),
+},
+
     TICKET: {
         POLYGON: new ethers.Contract(
             ADDRESS.POLYGON.TICKET,
@@ -70,7 +79,7 @@ OPTIMISM: new ethers.Contract(
         ),
         OPTIMISM: new ethers.Contract(
             ADDRESS.OPTIMISM.PRIZETIER,
-            ABI.PRIZETIER,
+            ABI.PRIZETIERV2,
             PROVIDERS.OPTIMISM
         ), POLYGON: new ethers.Contract(
             ADDRESS.POLYGON.PRIZETIER,

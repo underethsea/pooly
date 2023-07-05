@@ -61,9 +61,35 @@ let totalPrizeValue = 0;
     }
   }
   let tvl = await TvlActive()
-  tvl = tvl.total;
-  console.log(tvl)
-  const dailyProbWin = 1 / (tvl / totalPrizes / scalingVariable); // daily dollar probability of winning
+  // tvl = tvl.total;
+  // console.log(tvl)
+console.log(tvl)
+let chainName = ""
+
+console.log("chain",chain)
+if (chain == 1) { chain = 1 ;chainName="ethereum"}
+    else if (chain == 3) { chain = 3;chainName="polygon" }
+    else if (chain == 4) { chain = 4;chainName="avalanche" }
+    else if (chain == 6) { chain = 6;chainName="optimism" }
+    else { chain = 6 ;chainName="optimism"}
+
+let chainTvl = tvl[chainName]
+console.log("chain tvl",chainTvl)
+console.log("tier prizes",tierPrizes)
+console.log("dpr:",tierPrizes.dpr)
+console.log("total prize:",tierPrizes.totalPrize)
+console.log("scaling variabel:",scalingVariable)
+const expectedReturns = chainTvl * tierPrizes.dpr
+console.log("expected returns: (tvl * dpr)",expectedReturns)
+ 
+     const oddsAdjustment = expectedReturns / tierPrizes.totalPrize
+   console.log("odds adjust expect return dividby total prize",oddsAdjustment)
+      const dailyProbWin = oddsAdjustment * (1 / (chainTvl / tierPrizes.totalPrize / scalingVariable));
+      
+
+console.log("daily prob win",dailyProbWin)
+const daysToTierOnePrize = 1 / oddsAdjustment  
+//const dailyProbWin = 1 / (chainTvl / tierPrizes.totalPrize / scalingVariable); // daily dollar probability of winning
 
   // console.log("total prize value: ", totalPrizeValue);
   // console.log("total number of prizes: ", totalPrizes);

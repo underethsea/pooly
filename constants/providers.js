@@ -9,6 +9,9 @@ dotenv.config();
 
 const ethereumEndpoint = "https://eth-mainnet.alchemyapi.io/v2/" + process.env.POLYGON_KEY;
 const polygonEndpoint = "https://polygon-mainnet.g.alchemy.com/v2/" + process.env.POLYGON_KEY;
+// const avalancheEndpoint = "https://api.avax.network/ext/bc/C/rpc";
+//const avalancheEndpoint = "https://avalanche-mainnet.infura.io/v3/" + process.env.INFURA_KEY;
+// const avalancheEndpoint = "" process.env.POLYGON_KEY;
 const avalancheEndpoint = "https://api.avax.network/ext/bc/C/rpc";
 const optimismEndpoint = "https://opt-mainnet.g.alchemy.com/v2/" + process.env.POLYGON_KEY;
 // const avalancheEndpoint = "https://rpc.ankr.com/avalanche";

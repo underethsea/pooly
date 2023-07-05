@@ -9,21 +9,13 @@ const { Tvl } = require("./tvlReturn");
 
 const fetch = require("cross-fetch");
 
-// no optimism dpr yet
-const chains = ["polygon", "ethereum", "avalanche"];
+const chains = ["optimism", "polygon",  "avalanche", "ethereum"];
 
 function separator(numb) {
     var str = numb.toString().split(".");
     str[0] = str[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
     return str.join(".");
   }
-// const oddsNumber = (amount) => {
-//     if (amount >= 100) {
-//         return amount.toFixed();
-//     } else {
-//         return amount.toFixed(2);
-//     }
-// };
 async function dprCheck() {
   try {
     let aave = await getAaveRates();
@@ -45,85 +37,50 @@ async function dprCheck() {
         chain = 6;
         chainName = "optimism";
       }
-      console.log("getting prize tier for chain", chain);
+      console.log("getting prize tier for chain", chain, chainName);
       tiers[chainName] = await PrizeTier(chain);
-      console.log("got", tiers[chainName]);
+      console.log("got it------------------------------------ " + chainName+" ", tiers[chainName]);
     }
-console.log("tiers.....",tiers)
+
+
     console.log("tvl active", tvl);
     // tvl = tvl[chainName];
 
     //Chance = (Percentage Rate * Prize Pool TVL) / Total Prize
     let infoString = "CHAIN | TVL ACTIVE | PRIZE | YIELD | SUBSIDY\n";
 let result = {}    
+result.chains = {}
+let prizeSum = 0
+let yieldSum = 0
+let tvlSum = 0
+
 chains.forEach((chain) => {
-      infoString +=
-        chain.substring(0,3).padEnd(5,' ') +
-        " | " +
-        separator(Math.round(tvl[chain]).toString()).padEnd(10,' ') +
-        " | " +
-        Math.round(tiers[chain].dpr * tvl[chain]).toString().padStart(5, ' ' ) +
-        " | " +
-        Math.round(aave[chain].apr/100*tvl[chain]/365).toString().padStart(5, ' ' ) +
-        " | " +
-        (Math.round((((aave[chain].apr/100*tvl[chain]/365) - (tiers[chain].dpr * tvl[chain])) / ((aave[chain].apr/100) * tvl[chain]/365))*-100) + "%").toString().padEnd(4, ' ' ) +
-        "\n";
-    result[chain] = {tvl: separator(Math.round(tvl[chain]).toString()),
+console.log("chain!!!!!!",chain)
+console.log("chain tier",tiers[chain])
+tvlSum += tvl[chain]
+prizeSum += tiers[chain].dpr * tvl[chain]
+yieldSum += aave[chain].apr/100*tvl[chain]/365
+// infoString +=
+//         chain.substring(0,3).padEnd(5,' ') +
+//         " | " +
+//         separator(Math.round(tvl[chain]).toString()).padEnd(10,' ') +
+//         " | " +
+//         Math.round(tiers[chain].dpr * tvl[chain]).toString().padStart(5, ' ' ) +
+//         " | " +
+//         Math.round(aave[chain].apr/100*tvl[chain]/365).toString().padStart(5, ' ' ) +
+//         " | " +
+//         (Math.round((((aave[chain].apr/100*tvl[chain]/365) - (tiers[chain].dpr * tvl[chain])) / ((aave[chain].apr/100) * tvl[chain]/365))*-100) + "%").toString().padEnd(4, ' ' ) +
+//         "\n";
+    result.chains[chain] = {tvl: separator(Math.round(tvl[chain]).toString()),
     prize: Math.round(tiers[chain].dpr * tvl[chain]).toString(),
 yield: Math.round(aave[chain].apr/100*tvl[chain]/365).toString(),
 subsidy: (Math.round((((aave[chain].apr/100*tvl[chain]/365) - (tiers[chain].dpr * tvl[chain])) / ((aave[chain].apr/100) * tvl[chain]/365))*-100) + "%").toString()
 }
     });
-   
-    
+    result.totalPrize = Math.round(prizeSum).toString()
+    result.totalYield = Math.round(yieldSum).toString()
+    result.tvl = separator(Math.round(tvlSum))
 
-   
-            // let chance = drp * tvl
-    // let tvlTotal = tvl;
-    // console.log("newmoney", newMoney);
-    // if (newMoney === true) {
-    //   tvlTotal += amount;
-    // }
-
-    // const chance = (tvlTotal * prizeTier.dpr) / prizeTier.totalPrize;
-    // console.log("chance", chance);
-    // console.log("total prize", prizeTier.totalPrize);
-    // console.log("exp returns",expectedReturns)
-    // const oddsAdjustment = expectedReturns / prizeTier.totalPrize
-    // console.log("odds adjust",oddsAdjustment)
-    // let oddsResult = [];
-    // let totalPrizes = 0;
-    // let index = 0;
-    // TierPrizes.forEach((tier) => {
-    //   console.log(tier);
-    //   let tierOdds = 0;
-    //   if (prizeTier.tierPrizes[index] * tier > 0) {
-    //     let prizesPerDay = (tierOdds =
-    //       1 / (1 - Math.pow((tvlTotal - amount) / tvlTotal, chance * tier)));
-    //     console.log("tier ", tier);
-    //     totalPrizes += chance * tier;
-    //   }
-    //   oddsResult.push(tierOdds);
-    //   index += 1;
-    // });
-    // let anyPrizeOdds =
-    //   1 / (1 - Math.pow((tvlTotal - amount) / tvlTotal, totalPrizes));
-    // console.log("tvl", tvl, " amount ", amount, " totalPrizes ", totalPrizes);
-    // let oddsString =
-    //   ":link: Network " +
-    //   emoji(chain) +
-    //   "\n" +
-    //   emoji("trophy") +
-    //   "    Any prize `1 in " +
-    //   oddsNumber(anyPrizeOdds) +
-    //   "`\n\n";
-    // prizeTier = prizeTier.tierPrizes.reverse();
-    // for (x in oddsResult.reverse()) {
-    //   if (oddsResult[x] > 0) {
-    //     oddsString += "   `1 in " + oddsNumber(oddsResult[x]) + "` to win ";
-    //     oddsString += " " + emoji("usdc") + " " + prizeTier[x] + "\n";
-    //   }
-    // }
     return result;
   } catch (error) {
     console.log(error);

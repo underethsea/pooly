@@ -2,6 +2,8 @@
 
 const { Client, Intents } = require("discord.js");
 const Discord = require("discord.js");
+const { DISCORDID } = require("./constants/discordId.js")
+
 
 const pgp = require("pg-promise")(/* initialization options */);
 const ethers = require("ethers");
@@ -16,7 +18,11 @@ var emoji = require("./functions/emoji.js");
 dotenv.config();
 
 // override for manual draw processing
-// const drawToProcess = 456
+// const drawToProcess = 621
+
+// test with no public alerts (true)
+const testModeNoAlerts = false
+
 // blackList for addresses to not alert - array of strings!
 const tempBlacklist = [];
 // user to receive notifiation that alerts have completed
@@ -36,7 +42,10 @@ const fourteenUsdc = (amount) => {
   }
 };
 
-const networks = ["optimism", "polygon", "ethereum", "avalanche"];
+ const networks = ["optimism", "polygon", "ethereum", "avalanche"];
+//  modify to alert only certain networks
+// const networks = ["optimism"];
+
 const cdn = {
   host: "localhost", // server name or IP address;
   port: 5432,
@@ -57,7 +66,6 @@ async function getCurrentDraw() {
     return draws;
   }
 }
-
 const cn = {
   host: "localhost", // server name or IP address;
   port: 5432,
@@ -73,19 +81,64 @@ async function processCompleteDiscordNotify(drawId, dbLength, notifications) {
     let drawFetch = await fetch("https://poolexplorer.xyz/draw" + drawId);
     let drawResult = await drawFetch.json();
     console.log("alerts captain", userReportsId);
-    client.users.fetch(userReportsId, false).then((user) => {
-      message =
-        "DB processed subscribers " +
-        dbLength +
-        "\n" +
-        "Draw results length " +
-        drawResult.length +
-        "\n" +
-        "Notifications " +
-        notifications;
-      user.send(message).catch((err) => console.log(err));
-    });
-  } catch (error) {
+let optimismWinners = 0
+let polygonWinners = 0
+let claimableTotal = 0
+const bigOne = 5000
+const bigWinners = []
+    drawResult.forEach(winner=>{
+claimableTotal += winner.c[0]
+if(winner.c[0]>= bigOne){bigWinners.push(winner)}
+if(winner.n==="6"){optimismWinners+=1}
+if(winner.n==="3"){polygonWinners+=1}
+})
+console.log("op winners ",optimismWinners)
+console.log("poly winners ",polygonWinners)
+
+if(optimismWinners ===  0 || polygonWinners < 1){
+ 
+
+messageBummer = drawId + " polygon " + polygonWinners + " optimism " + optimismWinners
+        
+  client.users.fetch(userReportsId, false).then((user) => {
+  user.send(messageBummer).catch((err) => console.log(err))})
+        ;}
+        else{
+  let prizeMessage = emoji("trophy") + " " + drawResult.length + " WINNERS \n" + emoji("usdc") + " " + claimableTotal + " WON \n" 
+  const prizeEmbed = new MessageEmbed()
+          .setColor("#9B59B6")
+          .setTitle("Draw #" + drawId + " prizes")
+          .setDescription(prizeMessage);
+  console.log("embed",prizeEmbed)
+  console.log("sending")
+if(testModeNoAlerts !== true){
+        client.channels.cache
+          .get(DISCORDID.PT.BOT)
+          .send({ embeds: [prizeEmbed] });
+}
+          if (bigWinners.length  > 0){
+            let grandPrizers =  emoji("trophy") + " Wowzer, someone won the big one!"
+            let whoWantsIt = client.channels.fetch(DISCORDID.PT.BOT);
+if(testModeNoAlerts !== true){
+                  
+whoWantsIt.send(grandPrizers);
+}            }
+
+      client.users.fetch(userReportsId, false).then((user) => {
+        message = "Draw " + drawId + " " + 
+          "DB processed subscribers " +
+          dbLength +
+          "\n" +
+          "Draw results length " +
+          drawResult.length +
+          "\n" +
+          "Notifications " +
+          notifications;
+if(testModeNoAlerts !== true){
+        
+user.send(message).catch((err) => console.log(err));
+}      })
+  }} catch (error) {
     console.log(error);
     client.users.fetch(userReportsId, false).then((user) => {
       user.send(error).catch((err) => console.log(err));
@@ -188,8 +241,10 @@ async function isNewDraw(draw) {
 async function tellUser(user, message) {
   try {
     client.users.fetch(user, false).then((user) => {
-    user.send(message).catch(err => console.log(err));
-        console.log("tellUser (",user.id," ",message)
+  if(testModeNoAlerts !== true){
+  
+user.send(message).catch(err => console.log(err));
+}        console.log("tellUser (",user.id," ",message)
     });
   } catch (error) {
     console.log("could not alert user: ", error);
@@ -234,7 +289,7 @@ async function go() {
     let counter = 0;
     for (const player of queryFiltered) {
       if (shouldIstart) {
-        let prizeReturn = await prizes(
+         let prizeReturn = await prizes(
           player.discord,
           player.wallet,
           player.label,
@@ -250,7 +305,7 @@ async function go() {
       }
       counter += 1;
     }
-
+    
     processCompleteDiscordNotify(drawId, dbLength, queryFiltered.length);
     // console.log("login");
     //     client.login(process.env.BOT_KEY);

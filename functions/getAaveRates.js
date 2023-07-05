@@ -17,24 +17,24 @@ let geckoPrice =
     polygonLendingRate,
     ethereumLendingRate,
     avalancheLendingRate,
-    opPrice
+    // opPrice
   ] = await Promise.all([
     CONTRACTS.AAVEDATA.OPTIMISM.getReserveData(ADDRESS.OPTIMISM.USDC),
     CONTRACTS.AAVEDATA.POLYGON.getReserveData(ADDRESS.POLYGON.USDC),
     CONTRACTS.AAVEDATA.ETHEREUM.getReserveData(ADDRESS.ETHEREUM.USDC),
     CONTRACTS.AAVEDATA.AVALANCHE.getReserveData(ADDRESS.AVALANCHE.USDC),
-   fetch(geckoPrice)  
+   // fetch(geckoPrice)  
 ]);
-opPrice = await opPrice.json()
-opPrice = parseFloat(opPrice["optimism"].usd)
+// opPrice = await opPrice.json()
+// opPrice = parseFloat(opPrice["optimism"].usd)
   // let polygonLendingRate = await CONTRACTS.AAVEDATA.POLYGON.getReserveData(ADDRESS.POLYGON.USDC)
   console.log(polygonLendingRate, "poly");
   console.log("op lending rate",optimismLendingRate.totalAToken.toString())
 let opATokens = parseInt(optimismLendingRate.totalAToken.toString()) / 1e6  
-console.log( opPerDay," ",opPrice," ",opATokens)
-let opYieldPerDay = ((opPerDay * opPrice) / opATokens) * 100
-console.log(opYieldPerDay,"% op per day") 
-let optimismRate = optimismLendingRate[5] / 1e25;
+// console.log( opPerDay," ",opPrice," ",opATokens)
+// let opYieldPerDay = ((opPerDay * opPrice) / opATokens) * 100
+// console.log(opYieldPerDay,"% op per day") 
+ let optimismRate = optimismLendingRate[5] / 1e25;
   console.log(optimismRate, " op rate ", tvl.optimism, " op tvl");
 
   let polygonRate = polygonLendingRate[3] / 1e25;
@@ -55,7 +55,7 @@ let optimismRate = optimismLendingRate[5] / 1e25;
   let polygonDailyYield = ((polygonRate / 100) * parseInt(tvl.polygon)) / 365;
   let avalancheDailyYield =
     ((avalancheRate / 100) * parseInt(tvl.avalanche)) / 365;
- let opRewardsDailyYield = tvl.optimism * opYieldPerDay / 100
+ // let opRewardsDailyYield = tvl.optimism * opYieldPerDay / 100
   polygonDailyYield = ((polygonRate / 100) * parseInt(tvl.polygon)) / 365;
   console.log("op day yield: ", optimismDailyYield);
   console.log("eth day yield: ", ethereumDailyYield);

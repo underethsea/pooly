@@ -53,7 +53,7 @@ const { Poolers } = require("./functions/poolers");
 const { Weekly } = require("./functions/weekly");
 const { WinnerByDeposit } = require("./functions/winnerByDeposit");
 const { DprCheck } = require("./functions/dprCheck")
-
+const { PrizeCheck } = require("./functions/prizeCheck")
 require("./listeners/claimEvents");
 // require("./listeners/withdrawEvents");
 // require("./listeners/depositEvents");
@@ -193,6 +193,54 @@ async function go() {
       //           DM commands                            //
       // ================================================//
       if (message.channel.type == "DM") {
+        if (message.content == "=yield") {
+          GetAaveRates().then((yield) => {
+           let totalApr = ((yield.total  * 365 )/ yield.totalTvl) * 100
+            message.channel.send(
+              "```" + "op ".padEnd(7,' ') +
+                commas(yield.optimism.tvl).padStart(15,' ') +
+                " | " +
+                yield.optimism.apr +
+                "% | " +
+                yield.optimism.dayYield.toFixed(0) +
+                " \n" +
+                "".padEnd(7,' ') + "rewards".padStart(15,' ')  + " | " +
+                yield.optimism.rewardsApr.toFixed(2) +
+                "% | " +
+                commas(
+                  (yield.optimism.rewardsApr * yield.optimism.tvl) / 100 / 365
+                ) +
+                " \n" +
+                "poly ".padEnd(7,' ') +
+                commas(yield.polygon.tvl).padStart(15,' ') +
+                " | " +
+                yield.polygon.apr +
+                "% | " +
+                yield.polygon.dayYield.toFixed(0) +
+                " \n" +
+                "eth ".padEnd(7,' ') +
+                commas(yield.ethereum.tvl).padStart(15,' ') +
+                " | " +
+                yield.ethereum.apr +
+                "% | " +
+                yield.ethereum.dayYield.toFixed(0) +
+                " \n" +
+                "avax ".padEnd(7,' ') +
+                commas(yield.avalanche.tvl).padStart(15,' ') +
+                " | " +
+                yield.avalanche.apr +
+                "% | " +
+                yield.avalanche.dayYield.toFixed(0) +
+                " \n" +
+                "totals ".padEnd(7,' ') +
+                commas(yield.totalTvl).padStart(15,' ') +
+                " | " + totalApr.toFixed(2) +  "% | ~ " +
+                commas(yield.total) +
+                " per day ```"
+            );
+          });
+        }
+
         if (message.content === "=list") {
           try {
             PlayerWallets(message.author.id).then((walletsText) => {
@@ -340,7 +388,7 @@ async function go() {
       //             TWG COMMANDS                          //
       // ================================================= //
 
-      if (message.channel.id === DISCORDID.PT.TWG || message.channel.id === DISCORDID.PT.FINANCE) {
+      if (message.channel.id === DISCORDID.PT.TWG || message.channel.id === DISCORDID.PT.FINANCETEAM || message.channel.id === DISCORDID.PT.FINANCE) {
 if(message.content.startsWith("=hello?")){console.log("yes")}
 if (message.content.startsWith("=winnerbreakdown")){
  let drawQuery = message.content.split(" ");
@@ -361,7 +409,8 @@ message.channel.send(returnMsg)})
         message.channel.id === DISCORDID.PT.TWG ||
         message.channel.id === DISCORDID.US.TEST ||
         message.channel.id === DISCORDID.PT.TWGPRIZE ||
-        message.channel.id === DISCORDID.PT.PRIZETEAM
+        message.channel.id === DISCORDID.PT.PRIZETEAM ||
+message.channel.id === DISCORDID.PT.FINANCETEAM
       ) {
         if (message.content.startsWith("=aaverewards")) {
           AaveRewards().then((rewardsText) => {
@@ -470,7 +519,7 @@ drawText.padEnd(13,' ') +  commas(history.recentDrawWinners).padEnd(9,' ') + " |
                 poolers.under30.percentage +
                 "% \n" +                 
 
-"3 - 100".padEnd(16,' ') +
+"30 - 100".padEnd(16,' ') +
                 commas(poolers.under100.count).padStart(8,' ') +
                 " | " +
                 poolers.under100.countRatio.padStart(6,' ') + "%" +
@@ -538,26 +587,49 @@ WinnerByDeposit(drawStart,drawStop).then((returnMsg)=>{
 
 message.channel.send(returnMsg)})
 }
+ if (message.content.startsWith("=prizecheck")) {
+let messageQuery = message.content.split(" ");
+         let chainInfo = messageQuery[1];
+         let amount = messageQuery[2]
+PrizeCheck(chainInfo,amount).then((returned) => {
+const prizesEmbed = new MessageEmbed()
+              .setColor("#0099ff")
+              .setTitle("Prizes Per Day")
+              .setDescription(returned);
+            message.reply({ embeds: [prizesEmbed] });
+})}
+
         if (message.content == "=dprcheck") {
+
 DprCheck().then((returned) => {
 console.log(returned)
 let infoString = "```CHAIN | TVL ACTIVE  | PRIZE  | YIELD | SUBSIDY\n";
 
-for (const result in returned) {
+for (const result in returned.chains) {
 
  console.log("heres ones",result)
+console.log(returned.chains[result])
         infoString +=
           result.substring(0,3).padEnd(5,' ') +
           " | " +
-          returned[result].tvl.padEnd(11,' ') +
+          returned.chains[result].tvl.padEnd(11,' ') +
           " | " +
-          returned[result].prize.padStart(6, ' ' ) +
+          returned.chains[result].prize.padStart(6, ' ' ) +
           " | " +
-          returned[result].yield.padStart(5, ' ' ) +
+          returned.chains[result].yield.padStart(5, ' ' ) +
           " | " +
-          returned[result].subsidy.padEnd(5, ' ' ) +
+          returned.chains[result].subsidy.padEnd(5, ' ' ) +
           "\n";
         }
+infoString+=
+"-------------------------------------------------\n" +
+"total"  +
+" | " +
+returned.tvl.padEnd(11,' ') +
+" | " + 
+returned.totalPrize.padStart(6,' ') +
+" | " +
+returned.totalYield.padStart(5,' ')
 
 message.channel.send(infoString+"```")})
 }
@@ -623,6 +695,53 @@ message.channel.send(infoString+"```")})
         message.channel.id === DISCORDID.OTHER.L2DAO ||
         message.channel.id === DISCORDID.PT.FINANCE
       ) {
+ if (message.content.startsWith("=prizecheck")) {
+let messageQuery = message.content.split(" ");
+         let chainInfo = messageQuery[1];
+let amount = messageQuery[2]
+PrizeCheck(chainInfo,amount).then((returned) => {
+const prizesEmbed = new MessageEmbed()
+              .setColor("#0099ff")
+              .setTitle("Prizes Per Day")
+              .setDescription(returned);
+            message.reply({ embeds: [prizesEmbed] });
+
+})}
+
+ if (message.content == "=dprcheck") {
+DprCheck().then((returned) => {
+console.log(returned)
+let infoString = "```CHAIN | TVL ACTIVE  | PRIZE  | YIELD | SUBSIDY\n";
+
+for (const result in returned.chains) {
+
+ console.log("heres ones",result)
+        infoString +=
+          result.substring(0,3).padEnd(5,' ') +
+          " | " +
+          returned.chains[result].tvl.padEnd(11,' ') +
+          " | " +
+          returned.chains[result].prize.padStart(6, ' ' ) +
+          " | " +
+          returned.chains[result].yield.padStart(5, ' ' ) +
+          " | " +
+          returned.chains[result].subsidy.padEnd(5, ' ' ) +
+          "\n";
+        }
+
+infoString+=
+"-------------------------------------------------\n" +
+"total"  +
+" | " +
+returned.tvl.padEnd(11,' ') +
+" | " + 
+returned.totalPrize.padStart(6,' ') +
+" | " +
+returned.totalYield.padStart(5,' ')
+
+
+message.channel.send(infoString+"```")})
+}
 if (message.content.startsWith("=weekly")) {
   let chainQuery = message.content.split(" ");
          let  chain = chainQuery[1];
@@ -668,7 +787,7 @@ message.channel.send(
                 poolers.under30.percentage +
                 "% \n" +                 
 
-"3 - 100".padEnd(16,' ') +
+"30 - 100".padEnd(16,' ') +
                 commas(poolers.under100.count).padStart(8,' ') +
                 " | " +
                 poolers.under100.countRatio.padStart(6,' ') + "%" +
