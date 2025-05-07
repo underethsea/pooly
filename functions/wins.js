@@ -87,6 +87,7 @@ if (optimismWins.length > 0) {
           winsString += "  No wins yet my friend, your time will come.";
         }
       }
+if(ethereumWins.length <1 && optimismWins.length <1 && avalancheWins.length <1 && polygonWins.length < 1) {winsString+=" No wins yet my friend"}
       return winsString;
     } catch (error) {
       console.log("=wins error, address" + address + " " + error);

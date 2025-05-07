@@ -48,9 +48,9 @@ const { OpAPR } = require("./functions/opRewards");
 const { CalculatePrizeAPR } = require("./functions/calculatePrizeAPR");
 const { PrizeTier } = require("./functions/prizeTier");
 const { GetAaveRates } = require("./functions/getAaveRates");
-const { History } = require("./functions/history");
-const { Poolers } = require("./functions/poolers");
-const { Weekly } = require("./functions/weekly");
+//const { History } = require("./functions/history");
+//const { Poolers } = require("./functions/poolers");
+//const { Weekly } = require("./functions/weekly");
 const { WinnerByDeposit } = require("./functions/winnerByDeposit");
 const { DprCheck } = require("./functions/dprCheck")
 const { PrizeCheck } = require("./functions/prizeCheck")
@@ -453,6 +453,7 @@ let opText =  optimismTotal.toFixed(2) > 1 ? emoji("optimism") +
             message.channel.send({ embeds: [rewardsEmbed] });
           });
         }
+/*
  if (message.content.startsWith("=weekly")) {
     let chainQuery = message.content.split(" ");
        let chain = chainQuery[1];
@@ -469,7 +470,7 @@ message.channel.send(
 "Luckiest".padEnd(10,' ') + "Draw " + commas(weekly.luckyPooler.draw) + " Balance " + commas(weekly.luckyPooler.balance) + " Won " + commas(weekly.luckyPooler.win) +
 "```")
 
-})}
+})}*/
 if (message.content.startsWith("=winnerbreakdown")){
  let drawQuery = message.content.split(" ");
          let  drawStart = parseInt(drawQuery[1]);
@@ -479,7 +480,7 @@ WinnerByDeposit(drawStart,drawStop).then((returnMsg)=>{
 
 message.channel.send(returnMsg)})
 }
-
+/*
  if (message.content == "=history") {
 History().then((history) => {
 let drawText = "Draw " + history.recentDrawId;
@@ -491,7 +492,8 @@ drawText.padEnd(13,' ') +  commas(history.recentDrawWinners).padEnd(9,' ') + " |
 "30 day avg".padEnd(13,' ') + commas(history.thirtyDayWinners).padEnd(9,' ') + " | " + commas(history.thirtyDayClaimable).padEnd(10,' ') + " | " + commas(history.thirtyDayDropped) + "\n" +
 "```")
 })
-}
+}*/
+/*
  if (message.content.startsWith("=poolers")) {
           let addQuery = message.content.split(" ");
           chain = addQuery[1]
@@ -578,7 +580,9 @@ drawText.padEnd(13,' ') +  commas(history.recentDrawWinners).padEnd(9,' ') + " |
 
 "```") 
 
-})}if (message.content == "=winnerbreakdown"){
+})}
+*/
+if (message.content == "=winnerbreakdown"){
  let drawQuery = message.content.split(" ");
          let  drawStart = parseInt(drawQuery[1]);
 let drawStop = parseInt(drawQuery[2]);

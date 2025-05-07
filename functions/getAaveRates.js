@@ -113,3 +113,4 @@ try{
   return usdc;
 }catch(error){console.log(error)}
 }
+getAaveRates()

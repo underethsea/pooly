@@ -18,7 +18,7 @@ var emoji = require("./functions/emoji.js");
 dotenv.config();
 
 // override for manual draw processing
-// const drawToProcess = 621
+//const drawToProcess = 663
 
 // test with no public alerts (true)
 const testModeNoAlerts = false
